@@ -30,8 +30,6 @@ impl Token {
     }
 
     pub fn get_location(&self) -> Location {
-        self.token_location
-            .or_else(|| Some(Location::new(Position::new_zero(), Position::new_zero())))
-            .unwrap()
+        self.token_location.unwrap_or(Location::new_zero())
     }
 }

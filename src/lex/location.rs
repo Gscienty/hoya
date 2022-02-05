@@ -12,6 +12,10 @@ impl Location {
         Location { begin, end }
     }
 
+    pub fn new_zero() -> Self {
+        Location::new(Position::new_zero(), Position::new_zero())
+    }
+
     pub fn get_begin(&self) -> Position {
         self.begin
     }

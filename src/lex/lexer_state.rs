@@ -4,7 +4,7 @@ use regex::Regex;
 type LexMatchedFunc = fn(&str) -> (Token, IncrementOffset);
 
 // 词法解析器
-pub struct Lexer {
+pub struct LexerState {
     offset: usize,
     line: usize,
     line_offset: usize,
@@ -12,18 +12,21 @@ pub struct Lexer {
     ignore_regex: Option<Regex>,
     lex_regex: Vec<(Regex, LexMatchedFunc)>,
     eof: Option<fn() -> Token>,
+    is_eof: bool,
 }
 
-impl Lexer {
+impl LexerState {
     // 构造一个词法解析器
     pub fn new() -> Self {
-        Lexer {
+        LexerState {
             offset: 0,
             line: 1,
             line_offset: 0,
+
             ignore_regex: None,
             lex_regex: Vec::new(),
             eof: None,
+            is_eof: false,
         }
     }
 
@@ -36,6 +39,7 @@ impl Lexer {
         self.ignore_regex = None;
         self.lex_regex.clear();
         self.eof = None;
+        self.is_eof = false;
     }
 
     // 跳过忽略字符，返回offset > src.len()
@@ -65,8 +69,8 @@ impl Lexer {
         self
     }
 
-    // 设定截止Token
-    // eof: 构造截止Token的方法
+    // 设定终止Token
+    // eof: 构造终止Token的方法
     pub fn set_eof(&mut self, eof: fn() -> Token) -> &mut Self {
         self.eof = Some(eof);
 
@@ -106,27 +110,28 @@ impl Lexer {
         })
     }
 
+    fn next_eof(&mut self) -> Result<Token, ()> {
+        self.is_eof = true;
+
+        self.eof.and_then(|eof| Some(eof())).ok_or(())
+    }
+
     // 从源码中获取一个Token
     // src: 源码
     pub fn next(&mut self, src: &str) -> Result<Token, ()> {
-        while self.offset.lt(&src.len()) {
-            // 跳过被忽略的字符
-            if self.skip_ignore(src) {
-                break;
-            }
-
+        if self.is_eof || self.offset.ge(&src.len()) || self.skip_ignore(src) {
+            self.next_eof()
+        } else {
             let begin_position = self.get_current_position();
-            return self
-                .next_token(src)
+
+            self.next_token(src)
                 .and_then(|(mut token, increment_offset)| {
                     self.increment_offset(increment_offset);
                     token.set_location(begin_position, self.get_current_position());
                     Some(token)
                 })
-                .ok_or(());
+                .ok_or(())
         }
-
-        self.eof.and_then(|eof| Some(eof())).ok_or(())
     }
 }
 
@@ -136,8 +141,8 @@ mod tests {
 
     #[test]
     fn lex_calc() {
-        let mut lexer = Lexer::new();
-        lexer
+        let mut state = LexerState::new();
+        state
             .set_ignore(r"^( |\t)")
             .set_eof(|| Token::new("eof", ""))
             .add_token(r"^(=|\+|\*|/|\^|%|\(|\))", |token_slice| {
@@ -183,7 +188,7 @@ mod tests {
         ];
 
         for (expect_type, expect_value) in expect {
-            if let Ok(token) = lexer.next(src) {
+            if let Ok(token) = state.next(src) {
                 assert_eq!(expect_type, token.get_type());
                 assert_eq!(expect_value, token.get_value());
             } else {
@@ -194,9 +199,9 @@ mod tests {
 
     #[test]
     fn lex_calc2() {
-        let mut lexer = Lexer::new();
+        let mut state = LexerState::new();
 
-        lexer
+        state
             .set_ignore(r"^( |\t)")
             .set_eof(|| Token::new("eof", ""))
             .add_token(r"^\+=?", |token_slice| {
@@ -247,7 +252,7 @@ mod tests {
         ];
 
         for (expect_type, expect_value) in expect {
-            if let Ok(token) = lexer.next(src) {
+            if let Ok(token) = state.next(src) {
                 assert_eq!(expect_type, token.get_type());
                 assert_eq!(expect_value, token.get_value());
             } else {
