@@ -1,30 +1,30 @@
 use super::{IncrementOffset, Position, Token};
 use regex::Regex;
 
-type LexMatchedFunc = fn(&str) -> (Token, IncrementOffset);
-
 // 词法解析器
-pub struct LexerState {
+pub struct LexerState<S> {
+    custom_state: S,
     offset: usize,
     line: usize,
     line_offset: usize,
 
     ignore_regex: Option<Regex>,
-    lex_regex: Vec<(Regex, LexMatchedFunc)>,
+    lexer_tokens: Vec<(Regex, fn(&mut S, &str) -> (Token, IncrementOffset))>,
     eof: Option<fn() -> Token>,
     is_eof: bool,
 }
 
-impl LexerState {
+impl<S> LexerState<S> {
     // 构造一个词法解析器
-    pub fn new() -> Self {
+    pub fn new(custom_state: S) -> Self {
         LexerState {
+            custom_state,
             offset: 0,
             line: 1,
             line_offset: 0,
 
             ignore_regex: None,
-            lex_regex: Vec::new(),
+            lexer_tokens: Vec::new(),
             eof: None,
             is_eof: false,
         }
@@ -37,7 +37,7 @@ impl LexerState {
         self.line_offset = 0;
 
         self.ignore_regex = None;
-        self.lex_regex.clear();
+        self.lexer_tokens.clear();
         self.eof = None;
         self.is_eof = false;
     }
@@ -80,10 +80,14 @@ impl LexerState {
     // 添加Token
     // re: Token正则表达式
     // token_factory: 构造Token的方法
-    pub fn add_token(&mut self, re: &str, token_factory: LexMatchedFunc) -> &mut Self {
-        if let Ok(reg) = Regex::new(re) {
-            self.lex_regex.push((reg, token_factory));
-        }
+    pub fn add_token(
+        &mut self,
+        re: &str,
+        lexer_token: fn(&mut S, &str) -> (Token, IncrementOffset),
+    ) -> &mut Self {
+        Regex::new(re)
+            .and_then(|re| Ok(self.lexer_tokens.push((re, lexer_token))))
+            .ok();
 
         self
     }
@@ -103,10 +107,16 @@ impl LexerState {
 
     fn next_token(&mut self, src: &str) -> Option<(Token, IncrementOffset)> {
         src.get(self.offset..).and_then(|src| {
-            self.lex_regex.iter().find_map(|(re, token_factory)| {
-                re.find(src)
-                    .and_then(|matched| Some(token_factory(matched.as_str())))
-            })
+            if let Some((matched, token_factory)) =
+                self.lexer_tokens.iter().find_map(|(re, token_factory)| {
+                    re.find(src)
+                        .and_then(|matched| Some((matched.as_str(), token_factory)))
+                })
+            {
+                Some(token_factory(&mut self.custom_state, matched))
+            } else {
+                None
+            }
         })
     }
 
@@ -128,6 +138,7 @@ impl LexerState {
                 .and_then(|(mut token, increment_offset)| {
                     self.increment_offset(increment_offset);
                     token.set_location(begin_position, self.get_current_position());
+
                     Some(token)
                 })
                 .ok_or(())
@@ -135,128 +146,64 @@ impl LexerState {
     }
 }
 
+pub fn new_token(
+    token_type: &str,
+    token_value: &str,
+    increment_offset: usize,
+    increment_lines: usize,
+) -> (Token, IncrementOffset) {
+    (
+        Token::new(token_type, token_value),
+        IncrementOffset::new(increment_offset, increment_lines),
+    )
+}
+
+pub fn new_simple_token(token_type: &str, token_value: &str) -> (Token, IncrementOffset) {
+    new_token(token_type, token_value, token_value.len(), 0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn lex_calc() {
-        let mut state = LexerState::new();
+    fn parse_calc() {
+        const NUMBER_TOKEN: &str = r"^\d+";
+        const NAME_TOKEN: &str = r"^[a-zA-Z_][a-zA-Z0-9_]*";
+        const LITERAL_TOKEN: &str = r"^(\+?=|\+|;)";
+
+        let mut state = LexerState::new(());
         state
-            .set_ignore(r"^( |\t)")
             .set_eof(|| Token::new("eof", ""))
-            .add_token(r"^(=|\+|\*|/|\^|%|\(|\))", |token_slice| {
-                (
-                    Token::new("literal", token_slice),
-                    IncrementOffset::new(1, 0),
-                )
-            })
-            .add_token(r"^[a-zA-Z_][a-zA-Z0-9_]*", |token_slice| {
-                (
-                    Token::new("name", token_slice),
-                    IncrementOffset::new(token_slice.len(), 0),
-                )
-            })
-            .add_token(r"^\d+", |token_slice| {
-                (
-                    Token::new("number", token_slice),
-                    IncrementOffset::new(token_slice.len(), 0),
-                )
-            });
+            .set_ignore(r"^( |\t)")
+            .add_token(NUMBER_TOKEN, |_, token| new_simple_token("number", token))
+            .add_token(NAME_TOKEN, |_, token| new_simple_token("name", token))
+            .add_token(LITERAL_TOKEN, |_, token| new_simple_token("literal", token));
 
-        let src = "variable = 123 + 234 * 345 / 456 ^ (567 % 678) + variable_2";
-
-        let expect = vec![
-            ("name", "variable"),
-            ("literal", "="),
+        let src = "var += a + b +\t123 \t\t +456; var = 789";
+        for (token_type, token_value) in vec![
+            ("name", "var"),
+            ("literal", "+="),
+            ("name", "a"),
+            ("literal", "+"),
+            ("name", "b"),
+            ("literal", "+"),
             ("number", "123"),
             ("literal", "+"),
-            ("number", "234"),
-            ("literal", "*"),
-            ("number", "345"),
-            ("literal", "/"),
             ("number", "456"),
-            ("literal", "^"),
-            ("literal", "("),
-            ("number", "567"),
-            ("literal", "%"),
-            ("number", "678"),
-            ("literal", ")"),
-            ("literal", "+"),
-            ("name", "variable_2"),
+            ("literal", ";"),
+            ("name", "var"),
+            ("literal", "="),
+            ("number", "789"),
             ("eof", ""),
-        ];
-
-        for (expect_type, expect_value) in expect {
-            if let Ok(token) = state.next(src) {
-                assert_eq!(expect_type, token.get_type());
-                assert_eq!(expect_value, token.get_value());
-            } else {
-                panic!("failed unknow")
-            }
-        }
-    }
-
-    #[test]
-    fn lex_calc2() {
-        let mut state = LexerState::new();
-
-        state
-            .set_ignore(r"^( |\t)")
-            .set_eof(|| Token::new("eof", ""))
-            .add_token(r"^\+=?", |token_slice| {
-                (
-                    Token::new("literal", token_slice),
-                    IncrementOffset::new(token_slice.len(), 0),
-                )
-            })
-            .add_token(r"^[a-zA-Z_][a-zA-Z0-9_]*", |token_slice| {
-                (
-                    Token::new("name", token_slice),
-                    IncrementOffset::new(token_slice.len(), 0),
-                )
-            })
-            .add_token(r"^\d+", |token_slice| {
-                (
-                    Token::new("number", token_slice),
-                    IncrementOffset::new(token_slice.len(), 0),
-                )
-            })
-            .add_token(r"^\n", |_| {
-                (Token::new("new_line", ""), IncrementOffset::new(1, 1))
-            });
-
-        let src = "
-    var1 += var2 + var_3 + 4 + 5
-    + _var__4
-
-";
-
-        let expect = vec![
-            ("new_line", ""),
-            ("name", "var1"),
-            ("literal", "+="),
-            ("name", "var2"),
-            ("literal", "+"),
-            ("name", "var_3"),
-            ("literal", "+"),
-            ("number", "4"),
-            ("literal", "+"),
-            ("number", "5"),
-            ("new_line", ""),
-            ("literal", "+"),
-            ("name", "_var__4"),
-            ("new_line", ""),
-            ("new_line", ""),
             ("eof", ""),
-        ];
-
-        for (expect_type, expect_value) in expect {
+            ("eof", ""),
+        ] {
             if let Ok(token) = state.next(src) {
-                assert_eq!(expect_type, token.get_type());
-                assert_eq!(expect_value, token.get_value());
+                assert_eq!(token_type, token.get_type());
+                assert_eq!(token_value, token.get_value());
             } else {
-                panic!("failed unknow");
+                panic!("error")
             }
         }
     }
