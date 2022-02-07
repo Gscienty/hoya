@@ -1,4 +1,4 @@
-use super::{Position, StateChange, Token};
+use super::{NextStateChange, Position, StateChange, Token};
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -9,7 +9,8 @@ pub struct LexerState<S> {
     line: usize,
     line_offset: usize,
 
-    current_state: String,
+    state_stack: Vec<&'static str>,
+    current_state: &'static str,
     ignore_regex: Option<Regex>,
     lexer_tokens: HashMap<&'static str, Vec<(Regex, fn(&mut S, &str) -> (Token, StateChange))>>,
     eof: Option<fn() -> Token>,
@@ -18,14 +19,15 @@ pub struct LexerState<S> {
 
 impl<S> LexerState<S> {
     // 构造一个词法解析器
-    pub fn new(initial_status: &str, custom_state: S) -> Self {
+    pub fn new(initial_status: &'static str, custom_state: S) -> Self {
         LexerState {
             custom_state,
             offset: 0,
             line: 1,
             line_offset: 0,
 
-            current_state: String::from(initial_status),
+            state_stack: Vec::new(),
+            current_state: initial_status,
             ignore_regex: None,
             lexer_tokens: HashMap::new(),
             eof: None,
@@ -34,7 +36,7 @@ impl<S> LexerState<S> {
     }
 
     // 重置词法解析器
-    pub fn reset(&mut self, initial_status: &str, custom_state: S) {
+    pub fn reset(&mut self, initial_status: &'static str, custom_state: S) {
         self.reset_src(initial_status, custom_state);
 
         self.ignore_regex = None;
@@ -43,8 +45,9 @@ impl<S> LexerState<S> {
         self.is_eof = false;
     }
 
-    pub fn reset_src(&mut self, initial_status: &str, custom_state: S) {
-        self.current_state = String::from(initial_status);
+    pub fn reset_src(&mut self, initial_status: &'static str, custom_state: S) {
+        self.state_stack = Vec::new();
+        self.current_state = initial_status;
         self.custom_state = custom_state;
         self.offset = 0;
         self.line = 1;
@@ -119,9 +122,21 @@ impl<S> LexerState<S> {
             self.line += change.get_increment_lines();
             self.line_offset = self.offset;
         }
-        change
-            .get_next_state()
-            .and_then(|state| Some(self.current_state = String::from(state)));
+        change.get_next_state().and_then(|state| {
+            Some(match state {
+                NextStateChange::Push(state) => {
+                    self.state_stack.push(self.current_state);
+                    self.current_state = state;
+                }
+                NextStateChange::Pop(times) => {
+                    for _ in 0..times {
+                        self.state_stack
+                            .pop()
+                            .and_then(|state| Some(self.current_state = state));
+                    }
+                }
+            })
+        });
     }
 
     fn get_current_position(&self) -> Position {
@@ -130,15 +145,15 @@ impl<S> LexerState<S> {
 
     fn next_token(&mut self, src: &str) -> Option<(Token, StateChange)> {
         src.get(self.offset..).and_then(|src| {
-            if let Some((token, factory)) = self
-                .lexer_tokens
-                .get(self.current_state.as_str())
-                .and_then(|tokens| {
-                    tokens.iter().find_map(|(re, factory)| {
-                        re.find(src)
-                            .and_then(|matched| Some((matched.as_str(), factory)))
+            if let Some((token, factory)) =
+                self.lexer_tokens
+                    .get(self.current_state)
+                    .and_then(|tokens| {
+                        tokens.iter().find_map(|(re, factory)| {
+                            re.find(src)
+                                .and_then(|matched| Some((matched.as_str(), factory)))
+                        })
                     })
-                })
             {
                 Some(factory(&mut self.custom_state, token))
             } else {
@@ -234,60 +249,60 @@ mod tests {
 
     #[test]
     fn parse_increment() {
-        let mut state = LexerState::new("before_expr", ());
+        let mut state = LexerState::new("init", ());
 
         state
             .set_eof(|| Token::new("eof", ""))
             .set_ignore(r"^( |\t)");
 
         state
-            .add_token("before_expr", r"^[a-z]+", |_, token| {
+            .add_token("init", r"^[a-z]+", |_, token| {
                 TokenFactory::new("name")
-                    .next_state("require_literal")
+                    .push_state("require_literal")
                     .build(token)
             })
-            .add_token("before_expr", r"^\+{2}", |_, token| {
+            .add_token("init", r"^\+{2}", |_, token| {
                 TokenFactory::new("literal")
-                    .next_state("increment_name")
+                    .push_state("require_increment_name")
                     .build(token)
             });
 
         state.add_token("require_literal", r"^\+{1,2}", |_, token| {
             if token.len().eq(&1) {
-                TokenFactory::new("literal")
-                    .next_state("before_expr")
-                    .build("+")
+                TokenFactory::new("literal").pop_state(2).build("+")
             } else {
                 TokenFactory::new("literal")
-                    .next_state("after_expr")
+                    .push_state("name_increment_after")
                     .build("++")
             }
         });
 
-        state.add_token("increment_name", r"^[a-z]+", |_, token| {
+        state.add_token("require_increment_name", r"^[a-z]+", |_, token| {
             TokenFactory::new("name")
-                .next_state("after_expr")
+                .push_state("increment_name_after")
                 .build(token)
         });
 
-        state.add_token("after_expr", r"^\+", |_, token| {
-            TokenFactory::new("literal")
-                .next_state("before_expr")
-                .build(token)
+        state.add_token("increment_name_after", r"^\+", |_, token| {
+            TokenFactory::new("literal").pop_state(2).build(token)
+        });
+
+        state.add_token("name_increment_after", r"^\+", |_, token| {
+            TokenFactory::new("literal").pop_state(3).build(token)
         });
 
         let src = "++k+i+++++j";
         for (token_type, token_value) in vec![
-            ("literal", "++"),
-            ("name", "k"),
-            ("literal", "+"),
-            ("name", "i"),
-            ("literal", "++"),
-            ("literal", "+"),
+            ("literal", "++"), // init -> require_increment_name
+            ("name", "k"),     // require_increment_name -> increment_name_after
+            ("literal", "+"),  // increment_name_after -> init
+            ("name", "i"),     // init -> require_literal
+            ("literal", "++"), // require_literal -> name_increment_after
+            ("literal", "+"),  // name_increment_after -> init
             ("literal", "++"),
             ("name", "j"),
-            ("eof", ""),
-            ("eof", ""),
+            //("eof", ""),
+            //("eof", ""),
         ] {
             if let Ok(token) = state.next(src) {
                 assert_eq!(token_type, token.get_type());

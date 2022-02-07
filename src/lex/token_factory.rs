@@ -1,11 +1,11 @@
-use super::{StateChange, Token};
+use super::{NextStateChange, StateChange, Token};
 
 pub struct TokenFactory<'t> {
     token_type: &'t str,
 
     increment_offset: Option<usize>,
     increment_lines: Option<usize>,
-    next_state: Option<&'static str>,
+    next_state: Option<NextStateChange>,
 }
 
 impl<'t> TokenFactory<'t> {
@@ -31,8 +31,14 @@ impl<'t> TokenFactory<'t> {
         self
     }
 
-    pub fn next_state(&mut self, state: &'static str) -> &mut Self {
-        self.next_state = Some(state);
+    pub fn push_state(&mut self, state: &'static str) -> &mut Self {
+        self.next_state = Some(NextStateChange::Push(state));
+
+        self
+    }
+
+    pub fn pop_state(&mut self, times: usize) -> &mut Self {
+        self.next_state = Some(NextStateChange::Pop(times));
 
         self
     }

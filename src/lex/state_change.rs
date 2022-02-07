@@ -1,15 +1,21 @@
+#[derive(Clone, Copy)]
+pub enum NextStateChange {
+    Push(&'static str),
+    Pop(usize),
+}
+
 pub struct StateChange {
     increment_offset: usize,
     increment_lines: usize,
 
-    next_state: Option<&'static str>,
+    next_state: Option<NextStateChange>,
 }
 
 impl StateChange {
     pub fn new(
         increment_offset: usize,
         increment_lines: usize,
-        next_state: Option<&'static str>,
+        next_state: Option<NextStateChange>,
     ) -> Self {
         StateChange {
             increment_offset,
@@ -26,7 +32,7 @@ impl StateChange {
         self.increment_lines
     }
 
-    pub fn get_next_state(&self) -> Option<&str> {
+    pub fn get_next_state(&self) -> Option<NextStateChange> {
         self.next_state
     }
 }

@@ -1,6 +1,8 @@
 mod lex;
+mod yacc;
 
 pub use lex::*;
+pub use yacc::*;
 
 #[cfg(test)]
 mod tests {
