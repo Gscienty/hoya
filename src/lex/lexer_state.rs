@@ -301,8 +301,8 @@ mod tests {
             ("literal", "+"),  // name_increment_after -> init
             ("literal", "++"),
             ("name", "j"),
-            //("eof", ""),
-            //("eof", ""),
+            ("eof", ""),
+            ("eof", ""),
         ] {
             if let Ok(token) = state.next(src) {
                 assert_eq!(token_type, token.get_type());
