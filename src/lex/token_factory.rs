@@ -5,7 +5,7 @@ pub struct TokenFactory<'t> {
 
     increment_offset: Option<usize>,
     increment_lines: Option<usize>,
-    next_state: Option<NextStateChange>,
+    next_state: Vec<NextStateChange>,
 }
 
 impl<'t> TokenFactory<'t> {
@@ -15,7 +15,7 @@ impl<'t> TokenFactory<'t> {
 
             increment_offset: None,
             increment_lines: None,
-            next_state: None,
+            next_state: Vec::new(),
         }
     }
 
@@ -32,13 +32,13 @@ impl<'t> TokenFactory<'t> {
     }
 
     pub fn push_state(&mut self, state: &'static str) -> &mut Self {
-        self.next_state = Some(NextStateChange::Push(state));
+        self.next_state.push(NextStateChange::Push(state));
 
         self
     }
 
     pub fn pop_state(&mut self, times: usize) -> &mut Self {
-        self.next_state = Some(NextStateChange::Pop(times));
+        self.next_state.push(NextStateChange::Pop(times));
 
         self
     }

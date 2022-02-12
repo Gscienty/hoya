@@ -8,14 +8,14 @@ pub struct StateChange {
     increment_offset: usize,
     increment_lines: usize,
 
-    next_state: Option<NextStateChange>,
+    next_state: Vec<NextStateChange>,
 }
 
 impl StateChange {
     pub fn new(
         increment_offset: usize,
         increment_lines: usize,
-        next_state: Option<NextStateChange>,
+        next_state: Vec<NextStateChange>,
     ) -> Self {
         StateChange {
             increment_offset,
@@ -32,7 +32,7 @@ impl StateChange {
         self.increment_lines
     }
 
-    pub fn get_next_state(&self) -> Option<NextStateChange> {
+    pub fn get_next_state(&self) -> Vec<NextStateChange> {
         self.next_state
     }
 }

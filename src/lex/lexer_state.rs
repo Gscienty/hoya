@@ -122,21 +122,22 @@ impl<S> LexerState<S> {
             self.line += change.get_increment_lines();
             self.line_offset = self.offset;
         }
-        change.get_next_state().and_then(|state| {
-            Some(match state {
-                NextStateChange::Push(state) => {
+        change
+            .get_next_state()
+            .iter()
+            .for_each(|state| match state {
+                &NextStateChange::Push(state) => {
                     self.state_stack.push(self.current_state);
                     self.current_state = state;
                 }
-                NextStateChange::Pop(times) => {
+                &NextStateChange::Pop(times) => {
                     for _ in 0..times {
                         self.state_stack
                             .pop()
                             .and_then(|state| Some(self.current_state = state));
                     }
                 }
-            })
-        });
+            });
     }
 
     fn get_current_position(&self) -> Position {
