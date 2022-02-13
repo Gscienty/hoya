@@ -208,8 +208,21 @@ fn abnf_ele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
         .build(token)
 }
 
+fn abnf_pele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_CHOOSE_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .build(token)
+}
+
 fn abnf_ele_type_end(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(TOKEN_END_TYPE).pop_state(1).build(token)
+}
+
+fn abnf_pele_type_end(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_RIGHT_PARENTHESIS_TYPE)
+        .pop_state(1)
+        .build(token)
 }
 
 const ABNF_TOKEN_EOF: &str = "abnf_token_eof";
@@ -299,6 +312,25 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_reqpe_type_parenthesis),
             (TOKEN_VARIABLE_REGEX, abnf_reqpe_type_variable),
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_reqpe_type_options),
+        ],
+    );
+
+    // ABNF_STATE_PARENTHESIS_ELEMENTS
+    set_state_parsers(
+        &mut state,
+        ABNF_STATE_PARENTHESIS_ELEMENTS,
+        &vec![
+            (TOKEN_NAME_REGEX, abnf_ele_type_name),
+            (TOKEN_TERMINAL_BINARY_REGEX, abnf_ele_type_terminal),
+            (TOKEN_TERMINAL_DECIMAL_REGEX, abnf_ele_type_terminal),
+            (TOKEN_TERMINAL_HEXADECIMAL_REGEX, abnf_ele_type_terminal),
+            (TOKEN_TERMINAL_STRING_REGEX, abnf_ele_type_terminal),
+            (TOKEN_RANGE_REGEX, abnf_ele_type_range),
+            (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_ele_type_parenthesis),
+            (TOKEN_VARIABLE_REGEX, abnf_ele_type_variable),
+            (TOKEN_LEFT_OPTIONS_REGEX, abnf_ele_type_options),
+            (TOKEN_CHOOSE_REGEX, abnf_pele_type_choose),
+            (TOKEN_RIGHT_PARENTHESIS_REGEX, abnf_pele_type_end),
         ],
     );
 
