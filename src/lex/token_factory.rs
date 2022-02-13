@@ -49,7 +49,7 @@ impl<'t> TokenFactory<'t> {
             StateChange::new(
                 self.increment_offset.unwrap_or(token.len()),
                 self.increment_lines.unwrap_or(0),
-                self.next_state,
+                self.next_state.clone(),
             ),
         )
     }

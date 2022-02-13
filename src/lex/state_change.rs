@@ -32,7 +32,7 @@ impl StateChange {
         self.increment_lines
     }
 
-    pub fn get_next_state(&self) -> Vec<NextStateChange> {
-        self.next_state
+    pub fn get_next_state(&self) -> &Vec<NextStateChange> {
+        &self.next_state
     }
 }

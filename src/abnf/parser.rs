@@ -5,7 +5,7 @@ use super::{
 
 const TOKEN_NAME_TYPE: &str = "abnf_token_name";
 const TOKEN_DEFINER_TYPE: &str = "abnf_token_definer";
-const TOKEN_TERMINIAL_TYPE: &str = "abnf_token_terminal";
+const TOKEN_TERMINAL_TYPE: &str = "abnf_token_terminal";
 const TOKEN_RANGE_TYPE: &str = "abnf_token_range";
 const TOKEN_LEFT_PARENTHESIS_TYPE: &str = "abnf_token_left_parenthesis";
 const TOKEN_RIGHT_PARENTHESIS_TYPE: &str = "abnf_token_right_parenthesis";
@@ -20,7 +20,7 @@ const TOKEN_DEFINER_REGEX: &str = r"^=/?";
 const TOKEN_TERMINAL_BINARY_REGEX: &str = r"^%b(0|1)+(\.(0|1)+)*";
 const TOKEN_TERMINAL_DECIMAL_REGEX: &str = r"^%d\d+(\.\d+)*";
 const TOKEN_TERMINAL_HEXADECIMAL_REGEX: &str = r"^%h[a-fA-F0-9]+(\.[a-fA-F0-9]+)*";
-const TOKEN_TERMINAL_STRING_REGEX: &str = r#""(:?\"|[^"])*""#;
+const TOKEN_TERMINAL_STRING_REGEX: &str = "^\"(:?\\\")*\"";
 const TOKEN_RANGE_REGEX: &str = r"^b(0|1)+-(0|1)|d\d+-\d+|x[a-fA-F0-9]+-[a-fA-F0-9]+";
 const TOKEN_LEFT_PARENTHESIS_REGEX: &str = r"^\(";
 const TOKEN_RIGHT_PARENTHESIS_REGEX: &str = r"^\)";
@@ -168,31 +168,31 @@ fn abnf_reqoe_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
 }
 
 fn abnf_reqe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINIAL_TYPE)
+    TokenFactory::new(TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINIAL_TYPE).build(token)
+    TokenFactory::new(TOKEN_TERMINAL_TYPE).build(token)
 }
 
 fn abnf_reqpe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINIAL_TYPE)
+    TokenFactory::new(TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqve_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINIAL_TYPE)
+    TokenFactory::new(TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .build(token)
 }
 
 fn abnf_reqoe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINIAL_TYPE)
+    TokenFactory::new(TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
@@ -605,4 +605,33 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     );
 
     state
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simple_abnf() {
+        let mut lex_state = new_lexer_state();
+
+        let src = "token = name1 name2 \"name3\";";
+
+        for (token_type, token_value) in vec![
+            (TOKEN_NAME_TYPE, "token"),
+            (TOKEN_DEFINER_TYPE, "="),
+            (TOKEN_NAME_TYPE, "name1"),
+            (TOKEN_NAME_TYPE, "name2"),
+            (TOKEN_TERMINAL_TYPE, "name2"),
+            (TOKEN_END_TYPE, ";"),
+        ] {
+            if let Ok(token) = lex_state.next(src) {
+                println!("{} {}", token.get_type(), token.get_value());
+                assert_eq!(token_type, token.get_type());
+                assert_eq!(token_value, token.get_value());
+            } else {
+                panic!("error");
+            }
+        }
+    }
 }
