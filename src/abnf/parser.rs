@@ -31,42 +31,99 @@ const TOKEN_CHOOSE_REGEX: &str = r"^\|";
 const TOKEN_END_REGEX: &str = r"^;";
 
 // ABNF_STATE_INIT
+//
 // from ABNF_STATE_ELEMENTS
+//
 // to   ABNF_STATE_DEFINER
 const ABNF_STATE_INIT: &str = "abnf_state_init";
 
 // ABNF_STATE_DEFINER
+//
 // from ABNF_STATE_INIT
+//
 // to   ABNF_REQUIRE_STATE_ELEMENTS
 const ABNF_STATE_DEFINER: &str = "abnf_state_definer";
 
 // ABNF_STATE_REQUIRE_ELEMENTS
-// from ABNF_STATE_DEFINER | ABNF_STATE_CHOOSE
-// to ABNF_STATE_ELEMENTS
+//
+// from ABNF_STATE_DEFINER |
+//      ABNF_STATE_ELEMENTS
+//
+// to   ABNF_STATE_ELEMENTS
 const ABNF_STATE_REQUIRE_ELEMENTS: &str = "abnf_state_require_elements";
 
 // ABNF_STATE_ELEMENTS
-// from ABNF_STATE_REQUIRE_ELEMENTS | ABNF_STATE_CHOOSE
+//
+// from ABNF_STATE_REQUIRE_ELEMENTS |
+//      ABNF_STATE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_ELEMENTS |
+//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT |
+//      ABNF_STATE_OPTIONS_ELEMENTS
+//
+// to   ABNF_STATE_REQUIRE_ELEMENTS |
+//      ABNF_STATE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT |
+//      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_INIT
 const ABNF_STATE_ELEMENTS: &str = "abnf_state_elements";
 
 // ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-// from BNF_STATE_ELEMENTS | ABNF_STATE_PARENTHESIS
+//
+// from ABNF_STATE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_OPTIONS_ELEMENTS |
+//      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+//
 // to   ABNF_STATE_PARENTHESIS_ELEMENTS
 const ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS: &str = "abnf_state_parenthesis_require_elements";
 
 // ABNF_STATE_PARENTHESIS_ELEMENTS
+//
 // from ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
+//
+// to   ABNF_STATE_PARENTHESIS_ELEMENTS |
+//      ABNF_STATE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
 const ABNF_STATE_PARENTHESIS_ELEMENTS: &str = "abnf_state_parenthesis_elements";
 
 // ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-// from ABNF_STATE_REQUIRE_ELEMENTS |ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
-// ABNF_STATE_PARENTHESIS_ELEMENTS | ABNF_STATE_ELEMENTS
+//
+// from ABNF_STATE_REQUIRE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_ELEMENTS |
+//      ABNF_STATE_ELEMENTS
+//
+// to   ABNF_STATE_ELEMENTS |
+//      ABNF_STATE_OPTIONS_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_ELEMENTS
 const ABNF_STATE_VARIABLE_REQUIRE_ELEMENT: &str = "abnf_state_variable_require_element";
 
 // ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-// from
-// to
+//
+// from ABNF_STATE_REQUIRE_ELEMENTS |
+//      ABNF_STATE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_ELEMENTS
+//
+// to   ABNF_STATE_OPTIONS_ELEMENTS
 const ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS: &str = "abnf_state_options_require_elements";
+
+// ABNF_STATE_OPTIONS_ELEMENTS
+//
+// from ABNF_STATE_OPTIONS_ELEMENTS |
+//      ABNF_STATE_REQUIRE_ELEMENTS
+//
+// to   ABNF_STATE_PARENTHESIS_ELEMENTS |
+//      ABNF_STATE_ELEMENTS |
+//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
+//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+const ABNF_STATE_OPTIONS_ELEMENTS: &str = "abnf_state_options_elements";
 
 fn abnf_init_token_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(TOKEN_NAME_TYPE)
@@ -275,14 +332,18 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     set_state_parsers(
         &mut state,
         ABNF_STATE_INIT,
-        &vec![(TOKEN_NAME_REGEX, abnf_init_token_name)],
+        &vec![
+            (TOKEN_NAME_REGEX, abnf_init_token_name), // -> ABNF_STATE_DEFINER
+        ],
     );
 
     // ABNF_STATE_DEFINER
     set_state_parsers(
         &mut state,
         ABNF_STATE_DEFINER,
-        &vec![(TOKEN_DEFINER_REGEX, abnf_definer_token_definer)],
+        &vec![
+            (TOKEN_DEFINER_REGEX, abnf_definer_token_definer), // -> ABNF_STATE_REQUIRE_ELEMENTS
+        ],
     );
 
     // ABNF_STATE_REQUIRE_ELEMENTS
@@ -290,14 +351,23 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
         &mut state,
         ABNF_STATE_REQUIRE_ELEMENTS,
         &vec![
+            // -> ABNF_STATE_ELEMENTS
             (TOKEN_NAME_REGEX, abnf_reqe_type_name),
+            // -> ABNF_STATE_ELEMENTS
             (TOKEN_TERMINAL_BINARY_REGEX, abnf_reqe_type_terminal),
+            // -> ABNF_STATE_ELEMENTS
             (TOKEN_TERMINAL_DECIMAL_REGEX, abnf_reqe_type_terminal),
+            // -> ABNF_STATE_ELEMENTS
             (TOKEN_TERMINAL_HEXADECIMAL_REGEX, abnf_reqe_type_terminal),
+            // -> ABNF_STATE_ELEMENTS
             (TOKEN_TERMINAL_STRING_REGEX, abnf_reqe_type_terminal),
+            // -> ABNF_STATE_ELEMENTS
             (TOKEN_RANGE_REGEX, abnf_reqe_type_range),
+            // -> ABNF_STATE_ELEMENTS -> ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_reqe_type_parenthesis),
+            // -> ABNF_STATE_ELEMENTS -> ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
             (TOKEN_VARIABLE_REGEX, abnf_reqe_type_variable),
+            // ABNF_STATE_ELEMENTS -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_reqe_type_options),
         ],
     );
@@ -313,10 +383,15 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             (TOKEN_TERMINAL_HEXADECIMAL_REGEX, abnf_ele_type_terminal),
             (TOKEN_TERMINAL_STRING_REGEX, abnf_ele_type_terminal),
             (TOKEN_RANGE_REGEX, abnf_ele_type_range),
+            // -> ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_ele_type_parenthesis),
+            // -> ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
             (TOKEN_VARIABLE_REGEX, abnf_ele_type_variable),
+            // -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_ele_type_options),
+            // -> ABNF_STATE_REQUIRE_ELEMENTS
             (TOKEN_CHOOSE_REGEX, abnf_ele_type_choose),
+            // -> ABNF_STATE_INIT
             (TOKEN_END_REGEX, abnf_ele_type_end),
         ],
     );
@@ -326,14 +401,23 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
         &mut state,
         ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS,
         &vec![
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS
             (TOKEN_NAME_REGEX, abnf_reqpe_type_name),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS
             (TOKEN_TERMINAL_BINARY_REGEX, abnf_reqpe_type_terminal),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS
             (TOKEN_TERMINAL_DECIMAL_REGEX, abnf_reqpe_type_terminal),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS
             (TOKEN_TERMINAL_HEXADECIMAL_REGEX, abnf_reqpe_type_terminal),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS
             (TOKEN_TERMINAL_STRING_REGEX, abnf_reqpe_type_terminal),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS
             (TOKEN_RANGE_REGEX, abnf_reqpe_type_range),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS -> ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_reqpe_type_parenthesis),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS -> ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
             (TOKEN_VARIABLE_REGEX, abnf_reqpe_type_variable),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_reqpe_type_options),
         ],
     );
@@ -349,10 +433,17 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             (TOKEN_TERMINAL_HEXADECIMAL_REGEX, abnf_ele_type_terminal),
             (TOKEN_TERMINAL_STRING_REGEX, abnf_ele_type_terminal),
             (TOKEN_RANGE_REGEX, abnf_ele_type_range),
+            // -> ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_ele_type_parenthesis),
             (TOKEN_VARIABLE_REGEX, abnf_ele_type_variable),
+            // -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_ele_type_options),
+            // -> ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
             (TOKEN_CHOOSE_REGEX, abnf_pele_type_choose),
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_RIGHT_PARENTHESIS_REGEX, abnf_pele_type_end),
         ],
     );
@@ -362,12 +453,41 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
         &mut state,
         ABNF_STATE_VARIABLE_REQUIRE_ELEMENT,
         &vec![
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_NAME_REGEX, abnf_reqve_type_name),
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_TERMINAL_BINARY_REGEX, abnf_reqve_type_terminal),
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_TERMINAL_DECIMAL_REGEX, abnf_reqve_type_terminal),
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_TERMINAL_HEXADECIMAL_REGEX, abnf_reqve_type_terminal),
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_TERMINAL_STRING_REGEX, abnf_reqve_type_terminal),
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_RANGE_REGEX, abnf_reqve_type_range),
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
+            // -> ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_reqve_type_parenthesis),
         ],
     );
