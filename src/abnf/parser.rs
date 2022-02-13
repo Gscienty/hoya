@@ -12,6 +12,8 @@ const TOKEN_RIGHT_PARENTHESIS_TYPE: &str = "abnf_token_right_parenthesis";
 const TOKEN_VARIABLE_TYPE: &str = "abnf_token_variable";
 const TOKEN_LEFT_OPTIONS_TYPE: &str = "abnf_token_left_options";
 const TOKEN_RIGHT_OPTIONS_TYPE: &str = "abnf_token_right_options";
+const TOKEN_CHOOSE_TYPE: &str = "abnf_token_choose";
+const TOKEN_END_TYPE: &str = "abnf_token_end";
 
 const TOKEN_NAME_REGEX: &str = r"^[a-zA-Z][a-zA-Z0-9\-]*";
 const TOKEN_DEFINER_REGEX: &str = r"^=/?";
@@ -25,6 +27,8 @@ const TOKEN_RIGHT_PARENTHESIS_REGEX: &str = r"^\)";
 const TOKEN_VARIABLE_REGEX: &str = r"^\d*\*\d*|\d+";
 const TOKEN_LEFT_OPTIONS_REGEX: &str = r"^\[";
 const TOKEN_RIGHT_OPTIONS_REGEX: &str = r"^\]";
+const TOKEN_CHOOSE_REGEX: &str = r"^\|";
+const TOKEN_END_REGEX: &str = r"^;";
 
 // ABNF_STATE_INIT
 // from ABNF_STATE_ELEMENTS
@@ -64,124 +68,104 @@ const ABNF_STATE_VARIABLE_REQUIRE_ELEMENT: &str = "abnf_state_variable_require_e
 // to
 const ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS: &str = "abnf_state_options_require_elements";
 
-struct ABNFToken {
-    name: &'static str,
-    re: &'static str,
-    factory: fn(&mut BnfState, token: &str) -> (Token, StateChange),
+fn abnf_init_token_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_NAME_TYPE)
+        .push_state(ABNF_STATE_DEFINER)
+        .build(token)
 }
 
-const ABNF_INIT_TOKEN_NAME: ABNFToken = ABNFToken {
-    name: TOKEN_NAME_TYPE,
-    re: TOKEN_NAME_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_INIT_TOKEN_NAME.name)
-            .push_state(ABNF_STATE_DEFINER)
-            .build(token)
-    },
-};
+fn abnf_definer_token_definer(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_DEFINER_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
+        .build(token)
+}
 
-const ABNF_TOKEN_DEFINER: ABNFToken = ABNFToken {
-    name: TOKEN_DEFINER_TYPE,
-    re: TOKEN_DEFINER_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_TOKEN_DEFINER.name)
-            .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_reqe_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_NAME_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_ELEMENTS)
+        .build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_NAME: ABNFToken = ABNFToken {
-    name: TOKEN_NAME_TYPE,
-    re: TOKEN_NAME_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_NAME.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_ele_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_NAME_TYPE).build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_BINARY: ABNFToken = ABNFToken {
-    name: TOKEN_TERMINIAL_TYPE,
-    re: TOKEN_TERMINAL_BINARY_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_BINARY.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_reqe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_TERMINIAL_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_ELEMENTS)
+        .build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_DECIMAL: ABNFToken = ABNFToken {
-    name: TOKEN_TERMINIAL_TYPE,
-    re: TOKEN_TERMINAL_DECIMAL_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_DECIMAL.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_ele_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_TERMINIAL_TYPE).build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_HEXADECIMAL: ABNFToken = ABNFToken {
-    name: TOKEN_TERMINIAL_TYPE,
-    re: TOKEN_TERMINAL_HEXADECIMAL_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_HEXADECIMAL.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_reqe_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_RANGE_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_ELEMENTS)
+        .build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_STRING: ABNFToken = ABNFToken {
-    name: TOKEN_TERMINIAL_TYPE,
-    re: TOKEN_TERMINAL_STRING_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_STRING.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_ele_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_RANGE_TYPE).build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_RANGE: ABNFToken = ABNFToken {
-    name: TOKEN_RANGE_TYPE,
-    re: TOKEN_RANGE_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_RANGE.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_reqe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_LEFT_PARENTHESIS_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_ELEMENTS)
+        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_LEFT_PARENTHESIS: ABNFToken = ABNFToken {
-    name: TOKEN_LEFT_PARENTHESIS_TYPE,
-    re: TOKEN_LEFT_PARENTHESIS_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_LEFT_PARENTHESIS.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_ele_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_LEFT_PARENTHESIS_TYPE)
+        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_VARIABLE: ABNFToken = ABNFToken {
-    name: TOKEN_VARIABLE_TYPE,
-    re: TOKEN_VARIABLE_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_VARIABLE.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
-            .build(token)
-    },
-};
+fn abnf_reqe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_VARIABLE_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_ELEMENTS)
+        .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
+        .build(token)
+}
 
-const ABNF_REQUIRE_ELEMENTS_TOKEN_LEFT_OPTIONS: ABNFToken = ABNFToken {
-    name: TOKEN_LEFT_OPTIONS_TYPE,
-    re: TOKEN_LEFT_OPTIONS_REGEX,
-    factory: |_, token| {
-        TokenFactory::new(ABNF_REQUIRE_ELEMENTS_TOKEN_VARIABLE.name)
-            .push_state(ABNF_STATE_ELEMENTS)
-            .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
-            .build(token)
-    },
-};
+fn abnf_ele_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_VARIABLE_TYPE)
+        .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
+        .build(token)
+}
+
+fn abnf_reqe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_LEFT_OPTIONS_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_ELEMENTS)
+        .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
+        .build(token)
+}
+
+fn abnf_ele_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_LEFT_OPTIONS_TYPE)
+        .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
+        .build(token)
+}
+
+fn abnf_ele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_CHOOSE_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
+        .build(token)
+}
+
+fn abnf_ele_type_end(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_END_TYPE).pop_state(1).build(token)
+}
 
 const ABNF_TOKEN_EOF: &str = "abnf_token_eof";
 const ABNF_IGNORE_REGEX: &str = r"^( |\t)";
@@ -189,10 +173,13 @@ const ABNF_IGNORE_REGEX: &str = r"^( |\t)";
 fn set_state_parsers(
     state: &mut LexerState<BnfState>,
     token_state: &'static str,
-    tokens: &Vec<ABNFToken>,
+    tokens: &Vec<(
+        &'static str,
+        fn(&mut BnfState, &str) -> (Token, StateChange),
+    )>,
 ) {
     tokens.iter().for_each(|token| {
-        state.add_token(token_state, token.re, token.factory);
+        state.add_token(token_state, token.0, token.1);
     });
 }
 
@@ -204,25 +191,51 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
         .set_ignore(ABNF_IGNORE_REGEX);
 
     // ABNF_STATE_INIT
-    set_state_parsers(&mut state, ABNF_STATE_INIT, &vec![ABNF_INIT_TOKEN_NAME]);
+    set_state_parsers(
+        &mut state,
+        ABNF_STATE_INIT,
+        &vec![(TOKEN_NAME_REGEX, abnf_init_token_name)],
+    );
 
     // ABNF_STATE_DEFINER
-    set_state_parsers(&mut state, ABNF_STATE_DEFINER, &vec![ABNF_TOKEN_DEFINER]);
+    set_state_parsers(
+        &mut state,
+        ABNF_STATE_DEFINER,
+        &vec![(TOKEN_DEFINER_REGEX, abnf_definer_token_definer)],
+    );
 
     // ABNF_STATE_REQUIRE_ELEMENTS
     set_state_parsers(
         &mut state,
         ABNF_STATE_REQUIRE_ELEMENTS,
         &vec![
-            ABNF_REQUIRE_ELEMENTS_TOKEN_NAME,
-            ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_BINARY,
-            ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_DECIMAL,
-            ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_HEXADECIMAL,
-            ABNF_REQUIRE_ELEMENTS_TOKEN_TERMINAL_STRING,
-            ABNF_REQUIRE_ELEMENTS_TOKEN_RANGE,
-            ABNF_REQUIRE_ELEMENTS_TOKEN_LEFT_PARENTHESIS,
-            ABNF_REQUIRE_ELEMENTS_TOKEN_VARIABLE,
-            ABNF_REQUIRE_ELEMENTS_TOKEN_LEFT_OPTIONS,
+            (TOKEN_NAME_REGEX, abnf_reqe_type_name),
+            (TOKEN_TERMINAL_BINARY_REGEX, abnf_reqe_type_terminal),
+            (TOKEN_TERMINAL_DECIMAL_REGEX, abnf_reqe_type_terminal),
+            (TOKEN_TERMINAL_HEXADECIMAL_REGEX, abnf_reqe_type_terminal),
+            (TOKEN_TERMINAL_STRING_REGEX, abnf_reqe_type_terminal),
+            (TOKEN_RANGE_REGEX, abnf_reqe_type_range),
+            (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_reqe_type_parenthesis),
+            (TOKEN_VARIABLE_REGEX, abnf_reqe_type_variable),
+            (TOKEN_LEFT_OPTIONS_REGEX, abnf_reqe_type_options),
+        ],
+    );
+
+    set_state_parsers(
+        &mut state,
+        ABNF_STATE_ELEMENTS,
+        &vec![
+            (TOKEN_NAME_REGEX, abnf_ele_type_name),
+            (TOKEN_TERMINAL_BINARY_REGEX, abnf_ele_type_terminal),
+            (TOKEN_TERMINAL_DECIMAL_REGEX, abnf_ele_type_terminal),
+            (TOKEN_TERMINAL_HEXADECIMAL_REGEX, abnf_ele_type_terminal),
+            (TOKEN_TERMINAL_STRING_REGEX, abnf_ele_type_terminal),
+            (TOKEN_RANGE_REGEX, abnf_ele_type_range),
+            (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_ele_type_parenthesis),
+            (TOKEN_VARIABLE_REGEX, abnf_ele_type_variable),
+            (TOKEN_LEFT_OPTIONS_REGEX, abnf_ele_type_options),
+            (TOKEN_CHOOSE_REGEX, abnf_ele_type_choose),
+            (TOKEN_END_REGEX, abnf_ele_type_end),
         ],
     );
 
