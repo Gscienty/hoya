@@ -20,11 +20,11 @@ const TOKEN_DEFINER_REGEX: &str = r"^=/?";
 const TOKEN_TERMINAL_BINARY_REGEX: &str = r"^%b(0|1)+(\.(0|1)+)*";
 const TOKEN_TERMINAL_DECIMAL_REGEX: &str = r"^%d\d+(\.\d+)*";
 const TOKEN_TERMINAL_HEXADECIMAL_REGEX: &str = r"^%h[a-fA-F0-9]+(\.[a-fA-F0-9]+)*";
-const TOKEN_TERMINAL_STRING_REGEX: &str = "^\"(:?\\\")*\"";
-const TOKEN_RANGE_REGEX: &str = r"^b(0|1)+-(0|1)|d\d+-\d+|x[a-fA-F0-9]+-[a-fA-F0-9]+";
+const TOKEN_TERMINAL_STRING_REGEX: &str = r#"^"(?:\\"|[^"])*?""#;
+const TOKEN_RANGE_REGEX: &str = r"^(b(0|1)+-(0|1)|d\d+-\d+|x[a-fA-F0-9]+-[a-fA-F0-9]+)";
 const TOKEN_LEFT_PARENTHESIS_REGEX: &str = r"^\(";
 const TOKEN_RIGHT_PARENTHESIS_REGEX: &str = r"^\)";
-const TOKEN_VARIABLE_REGEX: &str = r"^\d*\*\d*|\d+";
+const TOKEN_VARIABLE_REGEX: &str = r"^(\d*\*\d*|\d+)";
 const TOKEN_LEFT_OPTIONS_REGEX: &str = r"^\[";
 const TOKEN_RIGHT_OPTIONS_REGEX: &str = r"^\]";
 const TOKEN_CHOOSE_REGEX: &str = r"^\|";
@@ -611,27 +611,109 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_simple_abnf() {
+    fn assert_token(src: &str, tokens: Vec<(&str, &str)>) {
         let mut lex_state = new_lexer_state();
 
-        let src = "token = name1 name2 \"name3\";";
-
-        for (token_type, token_value) in vec![
-            (TOKEN_NAME_TYPE, "token"),
-            (TOKEN_DEFINER_TYPE, "="),
-            (TOKEN_NAME_TYPE, "name1"),
-            (TOKEN_NAME_TYPE, "name2"),
-            (TOKEN_TERMINAL_TYPE, "name2"),
-            (TOKEN_END_TYPE, ";"),
-        ] {
+        for (token_type, token_value) in tokens {
             if let Ok(token) = lex_state.next(src) {
-                println!("{} {}", token.get_type(), token.get_value());
                 assert_eq!(token_type, token.get_type());
                 assert_eq!(token_value, token.get_value());
             } else {
                 panic!("error");
             }
         }
+    }
+
+    #[test]
+    fn test_simple_abnf() {
+        assert_token(
+            "token = name1 name2 \"name3\";",
+            vec![
+                (TOKEN_NAME_TYPE, "token"),
+                (TOKEN_DEFINER_TYPE, "="),
+                (TOKEN_NAME_TYPE, "name1"),
+                (TOKEN_NAME_TYPE, "name2"),
+                (TOKEN_TERMINAL_TYPE, "name2"),
+                (TOKEN_END_TYPE, ";"),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_terminal_abnf() {
+        assert_token(
+            "token = \"\\\"foo\\\"\" \"bar\";",
+            vec![
+                (TOKEN_NAME_TYPE, "token"),
+                (TOKEN_DEFINER_TYPE, "="),
+                (TOKEN_TERMINAL_TYPE, "\"\\\"foo\\\"\""),
+                (TOKEN_TERMINAL_TYPE, "\"bar\""),
+                (TOKEN_END_TYPE, ";"),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_parenthesis_abnf() {
+        assert_token(
+            "token = (name1 (\"terminal string\"))name2((name3)name4);",
+            vec![
+                (TOKEN_NAME_TYPE, "token"),
+                (TOKEN_DEFINER_TYPE, "="),
+                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (TOKEN_NAME_TYPE, "name1"),
+                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (TOKEN_TERMINAL_TYPE, "\"terminal string\""),
+                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (TOKEN_NAME_TYPE, "name2"),
+                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (TOKEN_NAME_TYPE, "name3"),
+                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (TOKEN_NAME_TYPE, "name4"),
+                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (TOKEN_END_TYPE, ";"),
+            ],
+        )
+    }
+
+    #[test]
+    fn test_options_abnf() {
+        assert_token(
+            "token = [option-token1 \";\" option-token2 (parenthesis [option-token3])];",
+            vec![
+                (TOKEN_NAME_TYPE, "token"),
+                (TOKEN_DEFINER_TYPE, "="),
+                (TOKEN_LEFT_OPTIONS_TYPE, "["),
+                (TOKEN_NAME_TYPE, "option-token1"),
+                (TOKEN_TERMINAL_TYPE, "\";\""),
+                (TOKEN_NAME_TYPE, "option-token2"),
+                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (TOKEN_NAME_TYPE, "parenthesis"),
+                (TOKEN_LEFT_OPTIONS_TYPE, "["),
+                (TOKEN_NAME_TYPE, "option-token3"),
+                (TOKEN_RIGHT_OPTIONS_TYPE, "]"),
+                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (TOKEN_RIGHT_OPTIONS_TYPE, "]"),
+            ],
+        )
+    }
+
+    #[test]
+    fn test_choose_abnf() {
+        assert_token(
+            "token = choose-1 | choose-2 | choose-3;",
+            vec![
+                (TOKEN_NAME_TYPE, "token"),
+                (TOKEN_DEFINER_TYPE, "="),
+                (TOKEN_NAME_TYPE, "choose-1"),
+                (TOKEN_CHOOSE_TYPE, "|"),
+                (TOKEN_NAME_TYPE, "choose-2"),
+                (TOKEN_CHOOSE_TYPE, "|"),
+                (TOKEN_NAME_TYPE, "choose-3"),
+                (TOKEN_END_TYPE, ";"),
+            ],
+        )
     }
 }
