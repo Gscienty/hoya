@@ -27,7 +27,7 @@ const TOKEN_RIGHT_PARENTHESIS_REGEX: &str = r"^\)";
 const TOKEN_VARIABLE_REGEX: &str = r"^(\d*\*\d*|\d+)";
 const TOKEN_LEFT_OPTIONS_REGEX: &str = r"^\[";
 const TOKEN_RIGHT_OPTIONS_REGEX: &str = r"^\]";
-const TOKEN_CHOOSE_REGEX: &str = r"^\|";
+const TOKEN_CHOOSE_REGEX: &str = r"^/";
 const TOKEN_END_REGEX: &str = r"^;";
 
 // ABNF_STATE_INIT
@@ -703,14 +703,14 @@ mod tests {
     #[test]
     fn test_choose_abnf() {
         assert_token(
-            "token = choose-1 | choose-2 | choose-3;",
+            "token = choose-1 / choose-2 / choose-3;",
             vec![
                 (TOKEN_NAME_TYPE, "token"),
                 (TOKEN_DEFINER_TYPE, "="),
                 (TOKEN_NAME_TYPE, "choose-1"),
-                (TOKEN_CHOOSE_TYPE, "|"),
+                (TOKEN_CHOOSE_TYPE, "/"),
                 (TOKEN_NAME_TYPE, "choose-2"),
-                (TOKEN_CHOOSE_TYPE, "|"),
+                (TOKEN_CHOOSE_TYPE, "/"),
                 (TOKEN_NAME_TYPE, "choose-3"),
                 (TOKEN_END_TYPE, ";"),
             ],
