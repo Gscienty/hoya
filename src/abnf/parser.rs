@@ -14,6 +14,7 @@ const TOKEN_LEFT_OPTIONS_TYPE: &str = "abnf_token_left_options";
 const TOKEN_RIGHT_OPTIONS_TYPE: &str = "abnf_token_right_options";
 const TOKEN_CHOOSE_TYPE: &str = "abnf_token_choose";
 const TOKEN_END_TYPE: &str = "abnf_token_end";
+const TOKEN_REQUIREMENT_TYPE: &str = "abnf_requirement";
 
 const TOKEN_NAME_REGEX: &str = r"^[a-zA-Z][a-zA-Z0-9\-]*";
 const TOKEN_DEFINER_REGEX: &str = r"^=/?";
@@ -29,6 +30,7 @@ const TOKEN_LEFT_OPTIONS_REGEX: &str = r"^\[";
 const TOKEN_RIGHT_OPTIONS_REGEX: &str = r"^\]";
 const TOKEN_CHOOSE_REGEX: &str = r"^/";
 const TOKEN_END_REGEX: &str = r"^;";
+const TOKEN_REQUIREMENT_REGEX: &str = r"^<.*?>";
 
 // ABNF_STATE_INIT
 //
@@ -185,14 +187,34 @@ fn abnf_reqpe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChang
         .build(token)
 }
 
+fn abnf_reqpe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_REQUIREMENT_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
+        .build(token)
+}
+
 fn abnf_reqve_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .build(token)
 }
 
+fn abnf_reqve_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_REQUIREMENT_TYPE)
+        .pop_state(1)
+        .build(token)
+}
+
 fn abnf_reqoe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(TOKEN_TERMINAL_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
+        .build(token)
+}
+
+fn abnf_reqoe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_REQUIREMENT_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
@@ -304,6 +326,13 @@ fn abnf_reqe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange)
         .build(token)
 }
 
+fn abnf_reqe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_REQUIREMENT_TYPE)
+        .pop_state(1)
+        .push_state(ABNF_STATE_ELEMENTS)
+        .build(token)
+}
+
 fn abnf_ele_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(TOKEN_LEFT_OPTIONS_TYPE)
         .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
@@ -331,6 +360,10 @@ fn abnf_ele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
         .pop_state(1)
         .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
         .build(token)
+}
+
+fn abnf_ele_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(TOKEN_REQUIREMENT_TYPE).build(token)
 }
 
 fn abnf_pele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
@@ -427,6 +460,8 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             (TOKEN_VARIABLE_REGEX, abnf_reqe_type_variable),
             // ABNF_STATE_ELEMENTS -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_reqe_type_options),
+            // -> ABNF_STATE_ELEMENTS
+            (TOKEN_REQUIREMENT_REGEX, abnf_reqe_type_requirement),
         ],
     );
 
@@ -451,6 +486,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             (TOKEN_CHOOSE_REGEX, abnf_ele_type_choose),
             // -> ABNF_STATE_INIT
             (TOKEN_END_REGEX, abnf_ele_type_end),
+            (TOKEN_REQUIREMENT_REGEX, abnf_ele_type_requirement),
         ],
     );
 
@@ -477,6 +513,8 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             (TOKEN_VARIABLE_REGEX, abnf_reqpe_type_variable),
             // -> ABNF_STATE_PARENTHESIS_ELEMENTS -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_reqpe_type_options),
+            // -> ABNF_STATE_PARENTHESIS_ELEMENTS
+            (TOKEN_REQUIREMENT_REGEX, abnf_reqpe_type_requirement),
         ],
     );
 
@@ -504,6 +542,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             // ABNF_STATE_PARENTHESIS_ELEMENTS |
             // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_RIGHT_PARENTHESIS_REGEX, abnf_pele_type_end),
+            (TOKEN_REQUIREMENT_REGEX, abnf_ele_type_requirement),
         ],
     );
 
@@ -548,6 +587,11 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             // ABNF_STATE_OPTIONS_ELEMENTS
             // -> ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_PARENTHESIS_REGEX, abnf_reqve_type_parenthesis),
+            // -> maybe
+            // ABNF_STATE_ELEMENTS |
+            // ABNF_STATE_PARENTHESIS_ELEMENTS |
+            // ABNF_STATE_OPTIONS_ELEMENTS
+            (TOKEN_REQUIREMENT_REGEX, abnf_reqve_type_requirement),
         ],
     );
 
@@ -574,6 +618,8 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             (TOKEN_VARIABLE_REGEX, abnf_reqoe_type_variable),
             // -> ABNF_STATE_OPTIONS_ELEMENTS -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_reqoe_type_options),
+            // -> ABNF_STATE_OPTIONS_ELEMENTS
+            (TOKEN_REQUIREMENT_REGEX, abnf_reqoe_type_requirement),
         ],
     );
 
@@ -601,6 +647,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             // ABNF_STATE_PARENTHESIS_ELEMENTS |
             // ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_RIGHT_OPTIONS_REGEX, abnf_oele_type_end),
+            (TOKEN_REQUIREMENT_REGEX, abnf_ele_type_requirement),
         ],
     );
 
