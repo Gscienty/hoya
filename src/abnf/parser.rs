@@ -3,18 +3,20 @@ use super::{
     BnfState,
 };
 
-const TOKEN_NAME_TYPE: &str = "abnf_token_name";
-const TOKEN_DEFINER_TYPE: &str = "abnf_token_definer";
-const TOKEN_TERMINAL_TYPE: &str = "abnf_token_terminal";
-const TOKEN_RANGE_TYPE: &str = "abnf_token_range";
-const TOKEN_LEFT_PARENTHESIS_TYPE: &str = "abnf_token_left_parenthesis";
-const TOKEN_RIGHT_PARENTHESIS_TYPE: &str = "abnf_token_right_parenthesis";
-const TOKEN_VARIABLE_TYPE: &str = "abnf_token_variable";
-const TOKEN_LEFT_OPTIONS_TYPE: &str = "abnf_token_left_options";
-const TOKEN_RIGHT_OPTIONS_TYPE: &str = "abnf_token_right_options";
-const TOKEN_CHOOSE_TYPE: &str = "abnf_token_choose";
-const TOKEN_END_TYPE: &str = "abnf_token_end";
-const TOKEN_REQUIREMENT_TYPE: &str = "abnf_requirement";
+pub mod abnf_type {
+    pub const TOKEN_NAME_TYPE: &str = "abnf_token_name";
+    pub const TOKEN_DEFINER_TYPE: &str = "abnf_token_definer";
+    pub const TOKEN_TERMINAL_TYPE: &str = "abnf_token_terminal";
+    pub const TOKEN_RANGE_TYPE: &str = "abnf_token_range";
+    pub const TOKEN_LEFT_PARENTHESIS_TYPE: &str = "abnf_token_left_parenthesis";
+    pub const TOKEN_RIGHT_PARENTHESIS_TYPE: &str = "abnf_token_right_parenthesis";
+    pub const TOKEN_VARIABLE_TYPE: &str = "abnf_token_variable";
+    pub const TOKEN_LEFT_OPTIONS_TYPE: &str = "abnf_token_left_options";
+    pub const TOKEN_RIGHT_OPTIONS_TYPE: &str = "abnf_token_right_options";
+    pub const TOKEN_CHOOSE_TYPE: &str = "abnf_token_choose";
+    pub const TOKEN_END_TYPE: &str = "abnf_token_end";
+    pub const TOKEN_REQUIREMENT_TYPE: &str = "abnf_requirement";
+}
 
 const TOKEN_NAME_REGEX: &str = r"^[a-zA-Z][a-zA-Z0-9\-]*";
 const TOKEN_DEFINER_REGEX: &str = r"^=/?";
@@ -128,131 +130,133 @@ const ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS: &str = "abnf_state_options_require_el
 const ABNF_STATE_OPTIONS_ELEMENTS: &str = "abnf_state_options_elements";
 
 fn abnf_init_token_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_NAME_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
         .push_state(ABNF_STATE_DEFINER)
         .build(token)
 }
 
 fn abnf_definer_token_definer(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_DEFINER_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_DEFINER_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_NAME_TYPE).build(token)
+    TokenFactory::new(abnf_type::TOKEN_NAME_TYPE).build(token)
 }
 
 fn abnf_reqe_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_NAME_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqpe_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_NAME_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqve_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_NAME_TYPE).pop_state(1).build(token)
+    TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
+        .pop_state(1)
+        .build(token)
 }
 
 fn abnf_reqoe_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_NAME_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINAL_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINAL_TYPE).build(token)
+    TokenFactory::new(abnf_type::TOKEN_TERMINAL_TYPE).build(token)
 }
 
 fn abnf_reqpe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINAL_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqpe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_REQUIREMENT_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqve_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINAL_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .build(token)
 }
 
 fn abnf_reqve_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_REQUIREMENT_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE)
         .pop_state(1)
         .build(token)
 }
 
 fn abnf_reqoe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_TERMINAL_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_TERMINAL_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqoe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_REQUIREMENT_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqe_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_RANGE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_RANGE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_RANGE_TYPE).build(token)
+    TokenFactory::new(abnf_type::TOKEN_RANGE_TYPE).build(token)
 }
 
 fn abnf_reqpe_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_RANGE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_RANGE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqve_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_RANGE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_RANGE_TYPE)
         .pop_state(1)
         .build(token)
 }
 
 fn abnf_reqoe_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_RANGE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_RANGE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_PARENTHESIS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_ELEMENTS)
         .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
@@ -260,13 +264,13 @@ fn abnf_reqe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateCha
 }
 
 fn abnf_ele_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_PARENTHESIS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqpe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_PARENTHESIS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
         .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
@@ -274,14 +278,14 @@ fn abnf_reqpe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateCh
 }
 
 fn abnf_reqve_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_PARENTHESIS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqoe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_PARENTHESIS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
@@ -289,7 +293,7 @@ fn abnf_reqoe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateCh
 }
 
 fn abnf_reqe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_VARIABLE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_VARIABLE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_ELEMENTS)
         .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
@@ -297,13 +301,13 @@ fn abnf_reqe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange
 }
 
 fn abnf_ele_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_VARIABLE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_VARIABLE_TYPE)
         .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
         .build(token)
 }
 
 fn abnf_reqpe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_VARIABLE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_VARIABLE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
         .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
@@ -311,7 +315,7 @@ fn abnf_reqpe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChang
 }
 
 fn abnf_reqoe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_VARIABLE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_VARIABLE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
@@ -319,7 +323,7 @@ fn abnf_reqoe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChang
 }
 
 fn abnf_reqe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_OPTIONS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_OPTIONS_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_ELEMENTS)
         .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
@@ -327,20 +331,20 @@ fn abnf_reqe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange)
 }
 
 fn abnf_reqe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_REQUIREMENT_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_OPTIONS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_OPTIONS_TYPE)
         .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqpe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_OPTIONS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_OPTIONS_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
         .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
@@ -348,7 +352,7 @@ fn abnf_reqpe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange
 }
 
 fn abnf_reqoe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_LEFT_OPTIONS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_LEFT_OPTIONS_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
         .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
@@ -356,42 +360,44 @@ fn abnf_reqoe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange
 }
 
 fn abnf_ele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_CHOOSE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_CHOOSE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_REQUIREMENT_TYPE).build(token)
+    TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE).build(token)
 }
 
 fn abnf_pele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_CHOOSE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_CHOOSE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_oele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_CHOOSE_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_CHOOSE_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_end(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_END_TYPE).pop_state(1).build(token)
+    TokenFactory::new(abnf_type::TOKEN_END_TYPE)
+        .pop_state(1)
+        .build(token)
 }
 
 fn abnf_pele_type_end(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_RIGHT_PARENTHESIS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE)
         .pop_state(1)
         .build(token)
 }
 
 fn abnf_oele_type_end(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(TOKEN_RIGHT_OPTIONS_TYPE)
+    TokenFactory::new(abnf_type::TOKEN_RIGHT_OPTIONS_TYPE)
         .pop_state(1)
         .build(token)
 }
@@ -676,12 +682,12 @@ mod tests {
         assert_token(
             "token = name1 name2 \"name3\";",
             vec![
-                (TOKEN_NAME_TYPE, "token"),
-                (TOKEN_DEFINER_TYPE, "="),
-                (TOKEN_NAME_TYPE, "name1"),
-                (TOKEN_NAME_TYPE, "name2"),
-                (TOKEN_TERMINAL_TYPE, "name2"),
-                (TOKEN_END_TYPE, ";"),
+                (abnf_type::TOKEN_NAME_TYPE, "token"),
+                (abnf_type::TOKEN_DEFINER_TYPE, "="),
+                (abnf_type::TOKEN_NAME_TYPE, "name1"),
+                (abnf_type::TOKEN_NAME_TYPE, "name2"),
+                (abnf_type::TOKEN_TERMINAL_TYPE, "name2"),
+                (abnf_type::TOKEN_END_TYPE, ";"),
             ],
         );
     }
@@ -691,11 +697,11 @@ mod tests {
         assert_token(
             "token = \"\\\"foo\\\"\" \"bar\";",
             vec![
-                (TOKEN_NAME_TYPE, "token"),
-                (TOKEN_DEFINER_TYPE, "="),
-                (TOKEN_TERMINAL_TYPE, "\"\\\"foo\\\"\""),
-                (TOKEN_TERMINAL_TYPE, "\"bar\""),
-                (TOKEN_END_TYPE, ";"),
+                (abnf_type::TOKEN_NAME_TYPE, "token"),
+                (abnf_type::TOKEN_DEFINER_TYPE, "="),
+                (abnf_type::TOKEN_TERMINAL_TYPE, "\"\\\"foo\\\"\""),
+                (abnf_type::TOKEN_TERMINAL_TYPE, "\"bar\""),
+                (abnf_type::TOKEN_END_TYPE, ";"),
             ],
         );
     }
@@ -705,22 +711,22 @@ mod tests {
         assert_token(
             "token = (name1 (\"terminal string\"))name2((name3)name4);",
             vec![
-                (TOKEN_NAME_TYPE, "token"),
-                (TOKEN_DEFINER_TYPE, "="),
-                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
-                (TOKEN_NAME_TYPE, "name1"),
-                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
-                (TOKEN_TERMINAL_TYPE, "\"terminal string\""),
-                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
-                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
-                (TOKEN_NAME_TYPE, "name2"),
-                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
-                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
-                (TOKEN_NAME_TYPE, "name3"),
-                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
-                (TOKEN_NAME_TYPE, "name4"),
-                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
-                (TOKEN_END_TYPE, ";"),
+                (abnf_type::TOKEN_NAME_TYPE, "token"),
+                (abnf_type::TOKEN_DEFINER_TYPE, "="),
+                (abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (abnf_type::TOKEN_NAME_TYPE, "name1"),
+                (abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (abnf_type::TOKEN_TERMINAL_TYPE, "\"terminal string\""),
+                (abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (abnf_type::TOKEN_NAME_TYPE, "name2"),
+                (abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE, "("),
+                (abnf_type::TOKEN_NAME_TYPE, "name3"),
+                (abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (abnf_type::TOKEN_NAME_TYPE, "name4"),
+                (abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (abnf_type::TOKEN_END_TYPE, ";"),
             ],
         )
     }
@@ -730,19 +736,19 @@ mod tests {
         assert_token(
             "token = [option-token1 \";\" option-token2 (parenthesis [option-token3])];",
             vec![
-                (TOKEN_NAME_TYPE, "token"),
-                (TOKEN_DEFINER_TYPE, "="),
-                (TOKEN_LEFT_OPTIONS_TYPE, "["),
-                (TOKEN_NAME_TYPE, "option-token1"),
-                (TOKEN_TERMINAL_TYPE, "\";\""),
-                (TOKEN_NAME_TYPE, "option-token2"),
-                (TOKEN_LEFT_PARENTHESIS_TYPE, "("),
-                (TOKEN_NAME_TYPE, "parenthesis"),
-                (TOKEN_LEFT_OPTIONS_TYPE, "["),
-                (TOKEN_NAME_TYPE, "option-token3"),
-                (TOKEN_RIGHT_OPTIONS_TYPE, "]"),
-                (TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
-                (TOKEN_RIGHT_OPTIONS_TYPE, "]"),
+                (abnf_type::TOKEN_NAME_TYPE, "token"),
+                (abnf_type::TOKEN_DEFINER_TYPE, "="),
+                (abnf_type::TOKEN_LEFT_OPTIONS_TYPE, "["),
+                (abnf_type::TOKEN_NAME_TYPE, "option-token1"),
+                (abnf_type::TOKEN_TERMINAL_TYPE, "\";\""),
+                (abnf_type::TOKEN_NAME_TYPE, "option-token2"),
+                (abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE, "(abnf_type::"),
+                (abnf_type::TOKEN_NAME_TYPE, "parenthesis"),
+                (abnf_type::TOKEN_LEFT_OPTIONS_TYPE, "["),
+                (abnf_type::TOKEN_NAME_TYPE, "option-token3"),
+                (abnf_type::TOKEN_RIGHT_OPTIONS_TYPE, "]"),
+                (abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE, ")"),
+                (abnf_type::TOKEN_RIGHT_OPTIONS_TYPE, "]"),
             ],
         )
     }
@@ -752,14 +758,14 @@ mod tests {
         assert_token(
             "token = choose-1 / choose-2 / choose-3;",
             vec![
-                (TOKEN_NAME_TYPE, "token"),
-                (TOKEN_DEFINER_TYPE, "="),
-                (TOKEN_NAME_TYPE, "choose-1"),
-                (TOKEN_CHOOSE_TYPE, "/"),
-                (TOKEN_NAME_TYPE, "choose-2"),
-                (TOKEN_CHOOSE_TYPE, "/"),
-                (TOKEN_NAME_TYPE, "choose-3"),
-                (TOKEN_END_TYPE, ";"),
+                (abnf_type::TOKEN_NAME_TYPE, "token"),
+                (abnf_type::TOKEN_DEFINER_TYPE, "="),
+                (abnf_type::TOKEN_NAME_TYPE, "choose-1"),
+                (abnf_type::TOKEN_CHOOSE_TYPE, "/"),
+                (abnf_type::TOKEN_NAME_TYPE, "choose-2"),
+                (abnf_type::TOKEN_CHOOSE_TYPE, "/"),
+                (abnf_type::TOKEN_NAME_TYPE, "choose-3"),
+                (abnf_type::TOKEN_END_TYPE, ";"),
             ],
         )
     }
