@@ -13,9 +13,10 @@ pub mod abnf_type {
     pub const TOKEN_VARIABLE_TYPE: &str = "abnf_token_variable";
     pub const TOKEN_LEFT_OPTIONS_TYPE: &str = "abnf_token_left_options";
     pub const TOKEN_RIGHT_OPTIONS_TYPE: &str = "abnf_token_right_options";
-    pub const TOKEN_CHOOSE_TYPE: &str = "abnf_token_choose";
+    pub const TOKEN_SELECT_TYPE: &str = "abnf_token_select";
     pub const TOKEN_END_TYPE: &str = "abnf_token_end";
     pub const TOKEN_REQUIREMENT_TYPE: &str = "abnf_requirement";
+    pub const ABNF_TOKEN_EOF: &str = "abnf_token_eof";
 }
 
 const TOKEN_NAME_REGEX: &str = r"^[a-zA-Z][a-zA-Z0-9\-]*";
@@ -24,13 +25,13 @@ const TOKEN_TERMINAL_BINARY_REGEX: &str = r"^%b(0|1)+(\.(0|1)+)*";
 const TOKEN_TERMINAL_DECIMAL_REGEX: &str = r"^%d\d+(\.\d+)*";
 const TOKEN_TERMINAL_HEXADECIMAL_REGEX: &str = r"^%h[a-fA-F0-9]+(\.[a-fA-F0-9]+)*";
 const TOKEN_TERMINAL_STRING_REGEX: &str = r#"^"(?:\\"|[^"])*?""#;
-const TOKEN_RANGE_REGEX: &str = r"^(b(0|1)+-(0|1)|d\d+-\d+|x[a-fA-F0-9]+-[a-fA-F0-9]+)";
+const TOKEN_RANGE_REGEX: &str = r"^%(b(0|1)+-(0|1)+|d\d+-\d+|x[a-fA-F0-9]+-[a-fA-F0-9]+)";
 const TOKEN_LEFT_PARENTHESIS_REGEX: &str = r"^\(";
 const TOKEN_RIGHT_PARENTHESIS_REGEX: &str = r"^\)";
 const TOKEN_VARIABLE_REGEX: &str = r"^(\d*\*\d*|\d+)";
 const TOKEN_LEFT_OPTIONS_REGEX: &str = r"^\[";
 const TOKEN_RIGHT_OPTIONS_REGEX: &str = r"^\]";
-const TOKEN_CHOOSE_REGEX: &str = r"^/";
+const TOKEN_SELECT_REGEX: &str = r"^/";
 const TOKEN_END_REGEX: &str = r"^;";
 const TOKEN_REQUIREMENT_REGEX: &str = r"^<.*?>";
 
@@ -359,8 +360,8 @@ fn abnf_reqoe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange
         .build(token)
 }
 
-fn abnf_ele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(abnf_type::TOKEN_CHOOSE_TYPE)
+fn abnf_ele_type_select(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(abnf_type::TOKEN_SELECT_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
         .build(token)
@@ -370,15 +371,15 @@ fn abnf_ele_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChan
     TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE).build(token)
 }
 
-fn abnf_pele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(abnf_type::TOKEN_CHOOSE_TYPE)
+fn abnf_pele_type_select(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(abnf_type::TOKEN_SELECT_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
-fn abnf_oele_type_choose(_: &mut BnfState, token: &str) -> (Token, StateChange) {
-    TokenFactory::new(abnf_type::TOKEN_CHOOSE_TYPE)
+fn abnf_oele_type_select(_: &mut BnfState, token: &str) -> (Token, StateChange) {
+    TokenFactory::new(abnf_type::TOKEN_SELECT_TYPE)
         .pop_state(1)
         .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
         .build(token)
@@ -402,7 +403,6 @@ fn abnf_oele_type_end(_: &mut BnfState, token: &str) -> (Token, StateChange) {
         .build(token)
 }
 
-const ABNF_TOKEN_EOF: &str = "abnf_token_eof";
 const ABNF_IGNORE_REGEX: &str = r"^( |\t)";
 
 fn set_state_parsers(
@@ -422,7 +422,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     let mut state = LexerState::new(ABNF_STATE_INIT, BnfState::new());
 
     state
-        .set_eof(|| Token::new(ABNF_TOKEN_EOF, ""))
+        .set_eof(|| Token::new(abnf_type::ABNF_TOKEN_EOF, ""))
         .set_ignore(ABNF_IGNORE_REGEX);
 
     // ABNF_STATE_INIT
@@ -489,7 +489,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             // -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_ele_type_options),
             // -> ABNF_STATE_REQUIRE_ELEMENTS
-            (TOKEN_CHOOSE_REGEX, abnf_ele_type_choose),
+            (TOKEN_SELECT_REGEX, abnf_ele_type_select),
             // -> ABNF_STATE_INIT
             (TOKEN_END_REGEX, abnf_ele_type_end),
             (TOKEN_REQUIREMENT_REGEX, abnf_ele_type_requirement),
@@ -542,7 +542,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             // -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_ele_type_options),
             // -> ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-            (TOKEN_CHOOSE_REGEX, abnf_pele_type_choose),
+            (TOKEN_SELECT_REGEX, abnf_pele_type_select),
             // -> maybe
             // ABNF_STATE_ELEMENTS |
             // ABNF_STATE_PARENTHESIS_ELEMENTS |
@@ -647,7 +647,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
             // -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
             (TOKEN_LEFT_OPTIONS_REGEX, abnf_ele_type_options),
             // -> ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-            (TOKEN_CHOOSE_REGEX, abnf_oele_type_choose),
+            (TOKEN_SELECT_REGEX, abnf_oele_type_select),
             // -> maybe
             // ABNF_STATE_ELEMENTS |
             // ABNF_STATE_PARENTHESIS_ELEMENTS |
@@ -754,16 +754,16 @@ mod tests {
     }
 
     #[test]
-    fn test_choose_abnf() {
+    fn test_select_abnf() {
         assert_token(
             "token = choose-1 / choose-2 / choose-3;",
             vec![
                 (abnf_type::TOKEN_NAME_TYPE, "token"),
                 (abnf_type::TOKEN_DEFINER_TYPE, "="),
                 (abnf_type::TOKEN_NAME_TYPE, "choose-1"),
-                (abnf_type::TOKEN_CHOOSE_TYPE, "/"),
+                (abnf_type::TOKEN_SELECT_TYPE, "/"),
                 (abnf_type::TOKEN_NAME_TYPE, "choose-2"),
-                (abnf_type::TOKEN_CHOOSE_TYPE, "/"),
+                (abnf_type::TOKEN_SELECT_TYPE, "/"),
                 (abnf_type::TOKEN_NAME_TYPE, "choose-3"),
                 (abnf_type::TOKEN_END_TYPE, ";"),
             ],
