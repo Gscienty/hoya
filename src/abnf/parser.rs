@@ -689,7 +689,7 @@ mod tests {
                 (abnf_type::TOKEN_DEFINER_TYPE, "="),
                 (abnf_type::TOKEN_NAME_TYPE, "name1"),
                 (abnf_type::TOKEN_NAME_TYPE, "name2"),
-                (abnf_type::TOKEN_TERMINAL_TYPE, "name2"),
+                (abnf_type::TOKEN_TERMINAL_TYPE, "\"name3\""),
                 (abnf_type::TOKEN_END_TYPE, ";"),
             ],
         );
@@ -745,7 +745,7 @@ mod tests {
                 (abnf_type::TOKEN_NAME_TYPE, "option-token1"),
                 (abnf_type::TOKEN_TERMINAL_TYPE, "\";\""),
                 (abnf_type::TOKEN_NAME_TYPE, "option-token2"),
-                (abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE, "(abnf_type::"),
+                (abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE, "("),
                 (abnf_type::TOKEN_NAME_TYPE, "parenthesis"),
                 (abnf_type::TOKEN_LEFT_OPTIONS_TYPE, "["),
                 (abnf_type::TOKEN_NAME_TYPE, "option-token3"),
