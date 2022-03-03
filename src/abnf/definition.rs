@@ -344,4 +344,22 @@ mod tests {
             panic!("error");
         }
     }
+
+    #[test]
+    fn test_definition_variable_rule() {
+        let src = "rule = 1*2(rule1 rule2 / rule3);";
+        let mut lex_state = new_lexer_state();
+
+        let _ = lex_state.next(src);
+        let _ = lex_state.next(src);
+
+        if let Ok(definition) = BnfDefinition::new(src, &mut lex_state) {
+            match *definition {
+                BnfDefinition::Repeat(_) => {}
+                _ => panic!("error type"),
+            }
+        } else {
+            panic!("error");
+        }
+    }
 }

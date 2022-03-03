@@ -35,111 +35,114 @@ const TOKEN_SELECT_REGEX: &str = r"^/";
 const TOKEN_END_REGEX: &str = r"^;";
 const TOKEN_REQUIREMENT_REGEX: &str = r"^<.*?>";
 
-// ABNF_STATE_INIT
-//
-// from ABNF_STATE_ELEMENTS
-//
-// to   ABNF_STATE_DEFINER
-const ABNF_STATE_INIT: &str = "abnf_state_init";
+pub mod abnf_state {
+    // ABNF_STATE_INIT
+    //
+    // from ABNF_STATE_ELEMENTS
+    //
+    // to   ABNF_STATE_DEFINER
+    pub const ABNF_STATE_INIT: &str = "abnf_state_init";
 
-// ABNF_STATE_DEFINER
-//
-// from ABNF_STATE_INIT
-//
-// to   ABNF_REQUIRE_STATE_ELEMENTS
-const ABNF_STATE_DEFINER: &str = "abnf_state_definer";
+    // ABNF_STATE_DEFINER
+    //
+    // from ABNF_STATE_INIT
+    //
+    // to   ABNF_REQUIRE_STATE_ELEMENTS
+    pub const ABNF_STATE_DEFINER: &str = "abnf_state_definer";
 
-// ABNF_STATE_REQUIRE_ELEMENTS
-//
-// from ABNF_STATE_DEFINER |
-//      ABNF_STATE_ELEMENTS
-//
-// to   ABNF_STATE_ELEMENTS
-const ABNF_STATE_REQUIRE_ELEMENTS: &str = "abnf_state_require_elements";
+    // ABNF_STATE_REQUIRE_ELEMENTS
+    //
+    // from ABNF_STATE_DEFINER |
+    //      ABNF_STATE_ELEMENTS
+    //
+    // to   ABNF_STATE_ELEMENTS
+    pub const ABNF_STATE_REQUIRE_ELEMENTS: &str = "abnf_state_require_elements";
 
-// ABNF_STATE_ELEMENTS
-//
-// from ABNF_STATE_REQUIRE_ELEMENTS |
-//      ABNF_STATE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_ELEMENTS |
-//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT |
-//      ABNF_STATE_OPTIONS_ELEMENTS
-//
-// to   ABNF_STATE_REQUIRE_ELEMENTS |
-//      ABNF_STATE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT |
-//      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_INIT
-const ABNF_STATE_ELEMENTS: &str = "abnf_state_elements";
+    // ABNF_STATE_ELEMENTS
+    //
+    // from ABNF_STATE_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_ELEMENTS |
+    //      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT |
+    //      ABNF_STATE_OPTIONS_ELEMENTS
+    //
+    // to   ABNF_STATE_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT |
+    //      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_INIT
+    pub const ABNF_STATE_ELEMENTS: &str = "abnf_state_elements";
 
-// ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-//
-// from ABNF_STATE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_OPTIONS_ELEMENTS |
-//      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-//
-// to   ABNF_STATE_PARENTHESIS_ELEMENTS
-const ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS: &str = "abnf_state_parenthesis_require_elements";
+    // ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
+    //
+    // from ABNF_STATE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_OPTIONS_ELEMENTS |
+    //      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+    //
+    // to   ABNF_STATE_PARENTHESIS_ELEMENTS
+    pub const ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS: &str =
+        "abnf_state_parenthesis_require_elements";
 
-// ABNF_STATE_PARENTHESIS_ELEMENTS
-//
-// from ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-//
-// to   ABNF_STATE_PARENTHESIS_ELEMENTS |
-//      ABNF_STATE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-const ABNF_STATE_PARENTHESIS_ELEMENTS: &str = "abnf_state_parenthesis_elements";
+    // ABNF_STATE_PARENTHESIS_ELEMENTS
+    //
+    // from ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
+    //
+    // to   ABNF_STATE_PARENTHESIS_ELEMENTS |
+    //      ABNF_STATE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+    pub const ABNF_STATE_PARENTHESIS_ELEMENTS: &str = "abnf_state_parenthesis_elements";
 
-// ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-//
-// from ABNF_STATE_REQUIRE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_ELEMENTS |
-//      ABNF_STATE_ELEMENTS
-//
-// to   ABNF_STATE_ELEMENTS |
-//      ABNF_STATE_OPTIONS_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_ELEMENTS
-const ABNF_STATE_VARIABLE_REQUIRE_ELEMENT: &str = "abnf_state_variable_require_element";
+    // ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+    //
+    // from ABNF_STATE_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_ELEMENTS |
+    //      ABNF_STATE_ELEMENTS
+    //
+    // to   ABNF_STATE_ELEMENTS |
+    //      ABNF_STATE_OPTIONS_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_ELEMENTS
+    pub const ABNF_STATE_VARIABLE_REQUIRE_ELEMENT: &str = "abnf_state_variable_require_element";
 
-// ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-//
-// from ABNF_STATE_REQUIRE_ELEMENTS |
-//      ABNF_STATE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_ELEMENTS
-//
-// to   ABNF_STATE_OPTIONS_ELEMENTS
-const ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS: &str = "abnf_state_options_require_elements";
+    // ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
+    //
+    // from ABNF_STATE_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_ELEMENTS
+    //
+    // to   ABNF_STATE_OPTIONS_ELEMENTS
+    pub const ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS: &str = "abnf_state_options_require_elements";
 
-// ABNF_STATE_OPTIONS_ELEMENTS
-//
-// from ABNF_STATE_OPTIONS_ELEMENTS |
-//      ABNF_STATE_REQUIRE_ELEMENTS
-//
-// to   ABNF_STATE_PARENTHESIS_ELEMENTS |
-//      ABNF_STATE_ELEMENTS |
-//      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
-//      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-const ABNF_STATE_OPTIONS_ELEMENTS: &str = "abnf_state_options_elements";
+    // ABNF_STATE_OPTIONS_ELEMENTS
+    //
+    // from ABNF_STATE_OPTIONS_ELEMENTS |
+    //      ABNF_STATE_REQUIRE_ELEMENTS
+    //
+    // to   ABNF_STATE_PARENTHESIS_ELEMENTS |
+    //      ABNF_STATE_ELEMENTS |
+    //      ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS |
+    //      ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+    pub const ABNF_STATE_OPTIONS_ELEMENTS: &str = "abnf_state_options_elements";
+}
 
 fn abnf_init_token_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
-        .push_state(ABNF_STATE_DEFINER)
+        .push_state(abnf_state::ABNF_STATE_DEFINER)
         .build(token)
 }
 
 fn abnf_definer_token_definer(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_DEFINER_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_REQUIRE_ELEMENTS)
         .build(token)
 }
 
@@ -150,14 +153,14 @@ fn abnf_ele_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
 fn abnf_reqe_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqpe_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
@@ -170,14 +173,14 @@ fn abnf_reqve_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
 fn abnf_reqoe_type_name(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_NAME_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_TERMINAL_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
@@ -188,14 +191,14 @@ fn abnf_ele_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange)
 fn abnf_reqpe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_TERMINAL_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqpe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
@@ -214,21 +217,21 @@ fn abnf_reqve_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateCh
 fn abnf_reqoe_type_terminal(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_TERMINAL_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqoe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqe_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_RANGE_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
@@ -239,7 +242,7 @@ fn abnf_ele_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
 fn abnf_reqpe_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_RANGE_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_ELEMENTS)
         .build(token)
 }
 
@@ -252,118 +255,118 @@ fn abnf_reqve_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) 
 fn abnf_reqoe_type_range(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_RANGE_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_ELEMENTS)
-        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
-        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqpe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
-        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqve_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqoe_type_parenthesis(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
-        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_VARIABLE_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_ELEMENTS)
-        .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
+        .push_state(abnf_state::ABNF_STATE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
         .build(token)
 }
 
 fn abnf_ele_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_VARIABLE_TYPE)
-        .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
+        .push_state(abnf_state::ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
         .build(token)
 }
 
 fn abnf_reqpe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_VARIABLE_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
-        .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
         .build(token)
 }
 
 fn abnf_reqoe_type_variable(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_VARIABLE_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
-        .push_state(ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_VARIABLE_REQUIRE_ELEMENT)
         .build(token)
 }
 
 fn abnf_reqe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_OPTIONS_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_ELEMENTS)
-        .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqe_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_REQUIREMENT_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_OPTIONS_TYPE)
-        .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqpe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_OPTIONS_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_ELEMENTS)
-        .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_reqoe_type_options(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_LEFT_OPTIONS_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_OPTIONS_ELEMENTS)
-        .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_ele_type_select(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_SELECT_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_REQUIRE_ELEMENTS)
         .build(token)
 }
 
@@ -374,14 +377,14 @@ fn abnf_ele_type_requirement(_: &mut BnfState, token: &str) -> (Token, StateChan
 fn abnf_pele_type_select(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_SELECT_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
 fn abnf_oele_type_select(_: &mut BnfState, token: &str) -> (Token, StateChange) {
     TokenFactory::new(abnf_type::TOKEN_SELECT_TYPE)
         .pop_state(1)
-        .push_state(ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
+        .push_state(abnf_state::ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS)
         .build(token)
 }
 
@@ -419,7 +422,7 @@ fn set_state_parsers(
 }
 
 pub fn new_lexer_state() -> LexerState<BnfState> {
-    let mut state = LexerState::new(ABNF_STATE_INIT, BnfState::new());
+    let mut state = LexerState::new(abnf_state::ABNF_STATE_INIT, BnfState::new());
 
     state
         .set_eof(|| Token::new(abnf_type::ABNF_TOKEN_EOF, ""))
@@ -428,7 +431,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_INIT
     set_state_parsers(
         &mut state,
-        ABNF_STATE_INIT,
+        abnf_state::ABNF_STATE_INIT,
         &vec![
             (TOKEN_NAME_REGEX, abnf_init_token_name), // -> ABNF_STATE_DEFINER
         ],
@@ -437,7 +440,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_DEFINER
     set_state_parsers(
         &mut state,
-        ABNF_STATE_DEFINER,
+        abnf_state::ABNF_STATE_DEFINER,
         &vec![
             (TOKEN_DEFINER_REGEX, abnf_definer_token_definer), // -> ABNF_STATE_REQUIRE_ELEMENTS
         ],
@@ -446,7 +449,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_REQUIRE_ELEMENTS
     set_state_parsers(
         &mut state,
-        ABNF_STATE_REQUIRE_ELEMENTS,
+        abnf_state::ABNF_STATE_REQUIRE_ELEMENTS,
         &vec![
             // -> ABNF_STATE_ELEMENTS
             (TOKEN_NAME_REGEX, abnf_reqe_type_name),
@@ -474,7 +477,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_ELEMENTS
     set_state_parsers(
         &mut state,
-        ABNF_STATE_ELEMENTS,
+        abnf_state::ABNF_STATE_ELEMENTS,
         &vec![
             (TOKEN_NAME_REGEX, abnf_ele_type_name),
             (TOKEN_TERMINAL_BINARY_REGEX, abnf_ele_type_terminal),
@@ -499,7 +502,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
     set_state_parsers(
         &mut state,
-        ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS,
+        abnf_state::ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS,
         &vec![
             // -> ABNF_STATE_PARENTHESIS_ELEMENTS
             (TOKEN_NAME_REGEX, abnf_reqpe_type_name),
@@ -527,7 +530,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_PARENTHESIS_ELEMENTS
     set_state_parsers(
         &mut state,
-        ABNF_STATE_PARENTHESIS_ELEMENTS,
+        abnf_state::ABNF_STATE_PARENTHESIS_ELEMENTS,
         &vec![
             (TOKEN_NAME_REGEX, abnf_ele_type_name),
             (TOKEN_TERMINAL_BINARY_REGEX, abnf_ele_type_terminal),
@@ -555,7 +558,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
     set_state_parsers(
         &mut state,
-        ABNF_STATE_VARIABLE_REQUIRE_ELEMENT,
+        abnf_state::ABNF_STATE_VARIABLE_REQUIRE_ELEMENT,
         &vec![
             // -> maybe
             // ABNF_STATE_ELEMENTS |
@@ -604,7 +607,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
     set_state_parsers(
         &mut state,
-        ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS,
+        abnf_state::ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS,
         &vec![
             // -> ABNF_STATE_OPTIONS_ELEMENTS
             (TOKEN_NAME_REGEX, abnf_reqoe_type_name),
@@ -632,7 +635,7 @@ pub fn new_lexer_state() -> LexerState<BnfState> {
     // ABNF_STATE_OPTIONS_ELEMENTS
     set_state_parsers(
         &mut state,
-        ABNF_STATE_OPTIONS_ELEMENTS,
+        abnf_state::ABNF_STATE_OPTIONS_ELEMENTS,
         &vec![
             (TOKEN_NAME_REGEX, abnf_ele_type_name),
             (TOKEN_TERMINAL_BINARY_REGEX, abnf_ele_type_terminal),
