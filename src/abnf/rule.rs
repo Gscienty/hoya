@@ -1,14 +1,14 @@
-use super::BnfDefinition;
+use super::AbnfDefinition;
 
 #[derive(Clone)]
-pub struct BnfRule {
+pub struct AbnfRule {
     name: String,
-    definition: Box<BnfDefinition>,
+    definition: Box<AbnfDefinition>,
 }
 
-impl BnfRule {
-    pub fn new(rule_name: &str, definition: Box<BnfDefinition>) -> Self {
-        BnfRule {
+impl AbnfRule {
+    pub fn new(rule_name: &str, definition: Box<AbnfDefinition>) -> Self {
+        AbnfRule {
             name: String::from(rule_name),
             definition,
         }
@@ -18,15 +18,15 @@ impl BnfRule {
         self.name.as_str()
     }
 
-    pub fn get_definition(&self) -> &BnfDefinition {
+    pub fn get_definition(&self) -> &AbnfDefinition {
         self.definition.as_ref()
     }
 
-    pub fn append_select(&mut self, definition: Box<BnfDefinition>) {
+    pub fn append_select(&mut self, definition: Box<AbnfDefinition>) {
         match &mut *self.definition {
-            BnfDefinition::Select(value) => value.push(definition),
+            AbnfDefinition::Select(value) => value.push(definition),
             _ => {
-                self.definition = Box::new(BnfDefinition::Select(vec![
+                self.definition = Box::new(AbnfDefinition::Select(vec![
                     self.definition.clone(),
                     definition,
                 ]))

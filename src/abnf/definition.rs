@@ -8,20 +8,44 @@ pub enum RepeatTimes {
 }
 
 #[derive(Clone, Debug)]
-pub enum BnfDefinition {
-    Series(Vec<Box<BnfDefinition>>),
-    Select(Vec<Box<BnfDefinition>>),
+pub enum AbnfDefinition {
+    Series(Vec<Box<AbnfDefinition>>),
+    Select(Vec<Box<AbnfDefinition>>),
     Terminal(String),
     Rule(String),
     Range((i64, i64)),
-    Group(Box<BnfDefinition>),
-    Options(Box<BnfDefinition>),
-    Repeat((RepeatTimes, RepeatTimes, Box<BnfDefinition>)),
+    Group(Box<AbnfDefinition>),
+    Options(Box<AbnfDefinition>),
+    Repeat((RepeatTimes, RepeatTimes, Box<AbnfDefinition>)),
 }
 
-impl BnfDefinition {
+pub mod abnf_definition_name {
+    pub const SERIES: &str = "series";
+    pub const SELECT: &str = "select";
+    pub const TERMINAL: &str = "terminal";
+    pub const RULE: &str = "rule";
+    pub const RANGE: &str = "range";
+    pub const GROUP: &str = "group";
+    pub const OPTIONS: &str = "options";
+    pub const REPEAT: &str = "repeat";
+}
+
+impl AbnfDefinition {
     pub fn new(src: &str, abnf_lexer: &mut LexerState<BnfState>) -> Result<Box<Self>, ()> {
         Self::impl_new(src, abnf_lexer, abnf_type::TOKEN_END_TYPE)
+    }
+
+    pub fn get_name(&self) -> &str {
+        match self {
+            &Self::Series(_) => abnf_definition_name::SERIES,
+            &Self::Select(_) => abnf_definition_name::SELECT,
+            &Self::Terminal(_) => abnf_definition_name::TERMINAL,
+            &Self::Rule(_) => abnf_definition_name::RULE,
+            &Self::Range(_) => abnf_definition_name::RANGE,
+            &Self::Group(_) => abnf_definition_name::GROUP,
+            &Self::Options(_) => abnf_definition_name::OPTIONS,
+            &Self::Repeat(_) => abnf_definition_name::REPEAT,
+        }
     }
 
     fn range_numeric<'a>(n: char, chars: &'a mut Chars) -> Result<i64, ()> {
@@ -114,26 +138,25 @@ impl BnfDefinition {
         if token.get_type().eq(abnf_type::ABNF_TOKEN_EOF) {
             return Err(());
         }
-        let node =
-            match token.get_type() {
-                abnf_type::TOKEN_LEFT_OPTIONS_TYPE => Box::new(BnfDefinition::Options(
-                    Self::impl_new(src, abnf_lexer, abnf_type::TOKEN_RIGHT_OPTIONS_TYPE)?,
-                )),
+        let node = match token.get_type() {
+            abnf_type::TOKEN_LEFT_OPTIONS_TYPE => Box::new(AbnfDefinition::Options(
+                Self::impl_new(src, abnf_lexer, abnf_type::TOKEN_RIGHT_OPTIONS_TYPE)?,
+            )),
 
-                abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE => Box::new(BnfDefinition::Group(
-                    Self::impl_new(src, abnf_lexer, abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE)?,
-                )),
+            abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE => Box::new(AbnfDefinition::Group(
+                Self::impl_new(src, abnf_lexer, abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE)?,
+            )),
 
-                abnf_type::TOKEN_NAME_TYPE | abnf_type::TOKEN_REQUIREMENT_TYPE => {
-                    Box::new(BnfDefinition::Rule(String::from(token.get_value())))
-                }
+            abnf_type::TOKEN_NAME_TYPE | abnf_type::TOKEN_REQUIREMENT_TYPE => {
+                Box::new(AbnfDefinition::Rule(String::from(token.get_value())))
+            }
 
-                abnf_type::TOKEN_TERMINAL_TYPE => {
-                    Box::new(BnfDefinition::Terminal(String::from(token.get_value())))
-                }
+            abnf_type::TOKEN_TERMINAL_TYPE => {
+                Box::new(AbnfDefinition::Terminal(String::from(token.get_value())))
+            }
 
-                _ => return Err(()),
-            };
+            _ => return Err(()),
+        };
 
         Ok(Box::new(Self::Repeat((begin, end, node))))
     }
@@ -162,7 +185,7 @@ impl BnfDefinition {
         end: &str,
     ) -> Result<Box<Self>, ()> {
         let mut newly_definition = true;
-        let mut result: Vec<Box<BnfDefinition>> = Vec::new();
+        let mut result: Vec<Box<AbnfDefinition>> = Vec::new();
         loop {
             let token = abnf_lexer.next(src)?;
 
@@ -171,20 +194,20 @@ impl BnfDefinition {
             }
 
             let node = match token.get_type() {
-                abnf_type::TOKEN_LEFT_OPTIONS_TYPE => Box::new(BnfDefinition::Options(
+                abnf_type::TOKEN_LEFT_OPTIONS_TYPE => Box::new(AbnfDefinition::Options(
                     Self::impl_new(src, abnf_lexer, abnf_type::TOKEN_RIGHT_OPTIONS_TYPE)?,
                 )),
 
-                abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE => Box::new(BnfDefinition::Group(
+                abnf_type::TOKEN_LEFT_PARENTHESIS_TYPE => Box::new(AbnfDefinition::Group(
                     Self::impl_new(src, abnf_lexer, abnf_type::TOKEN_RIGHT_PARENTHESIS_TYPE)?,
                 )),
 
                 abnf_type::TOKEN_NAME_TYPE | abnf_type::TOKEN_REQUIREMENT_TYPE => {
-                    Box::new(BnfDefinition::Rule(String::from(token.get_value())))
+                    Box::new(AbnfDefinition::Rule(String::from(token.get_value())))
                 }
 
                 abnf_type::TOKEN_TERMINAL_TYPE => {
-                    Box::new(BnfDefinition::Terminal(String::from(token.get_value())))
+                    Box::new(AbnfDefinition::Terminal(String::from(token.get_value())))
                 }
 
                 abnf_type::TOKEN_RANGE_TYPE => Self::impl_range_new(token.get_value())?,
@@ -206,7 +229,7 @@ impl BnfDefinition {
             } else {
                 if let Some(last_node) = result.last_mut() {
                     match &mut **last_node {
-                        BnfDefinition::Series(value) => value.push(node),
+                        AbnfDefinition::Series(value) => value.push(node),
                         _ => {
                             if let Some(last_node) = result.pop() {
                                 result.push(Box::new(Self::Series(vec![last_node, node])))
@@ -223,7 +246,7 @@ impl BnfDefinition {
         } else if result.len().eq(&1) {
             result.into_iter().next().ok_or(())
         } else {
-            Ok(Box::new(BnfDefinition::Select(result)))
+            Ok(Box::new(AbnfDefinition::Select(result)))
         }
     }
 }
@@ -241,9 +264,9 @@ mod tests {
         let _ = lex_state.next(src);
         let _ = lex_state.next(src);
 
-        if let Ok(definition) = BnfDefinition::new(src, &mut lex_state) {
+        if let Ok(definition) = AbnfDefinition::new(src, &mut lex_state) {
             match *definition {
-                BnfDefinition::Series(rules) => {
+                AbnfDefinition::Series(rules) => {
                     assert_eq!(3, rules.len());
                 }
                 _ => panic!("error type"),
@@ -261,9 +284,9 @@ mod tests {
         let _ = lex_state.next(src);
         let _ = lex_state.next(src);
 
-        if let Ok(definition) = BnfDefinition::new(src, &mut lex_state) {
+        if let Ok(definition) = AbnfDefinition::new(src, &mut lex_state) {
             match *definition {
-                BnfDefinition::Select(rules) => {
+                AbnfDefinition::Select(rules) => {
                     assert_eq!(5, rules.len());
                 }
                 _ => panic!("error type"),
@@ -281,9 +304,9 @@ mod tests {
         let _ = lex_state.next(src);
         let _ = lex_state.next(src);
 
-        if let Ok(definition) = BnfDefinition::new(src, &mut lex_state) {
+        if let Ok(definition) = AbnfDefinition::new(src, &mut lex_state) {
             match *definition {
-                BnfDefinition::Group(_) => {}
+                AbnfDefinition::Group(_) => {}
                 _ => panic!("error type"),
             }
         } else {
@@ -299,9 +322,9 @@ mod tests {
         let _ = lex_state.next(src);
         let _ = lex_state.next(src);
 
-        if let Ok(definition) = BnfDefinition::new(src, &mut lex_state) {
+        if let Ok(definition) = AbnfDefinition::new(src, &mut lex_state) {
             match *definition {
-                BnfDefinition::Options(_) => {}
+                AbnfDefinition::Options(_) => {}
                 _ => panic!("error type"),
             }
         } else {
@@ -317,9 +340,9 @@ mod tests {
         let _ = lex_state.next(src);
         let _ = lex_state.next(src);
 
-        if let Ok(definition) = BnfDefinition::new(src, &mut lex_state) {
+        if let Ok(definition) = AbnfDefinition::new(src, &mut lex_state) {
             match *definition {
-                BnfDefinition::Terminal(_) => {}
+                AbnfDefinition::Terminal(_) => {}
                 _ => panic!("error type"),
             }
         } else {
@@ -335,9 +358,9 @@ mod tests {
         let _ = lex_state.next(src);
         let _ = lex_state.next(src);
 
-        if let Ok(definition) = BnfDefinition::new(src, &mut lex_state) {
+        if let Ok(definition) = AbnfDefinition::new(src, &mut lex_state) {
             match *definition {
-                BnfDefinition::Range(_) => {}
+                AbnfDefinition::Range(_) => {}
                 _ => panic!("error type"),
             }
         } else {
@@ -353,9 +376,9 @@ mod tests {
         let _ = lex_state.next(src);
         let _ = lex_state.next(src);
 
-        if let Ok(definition) = BnfDefinition::new(src, &mut lex_state) {
+        if let Ok(definition) = AbnfDefinition::new(src, &mut lex_state) {
             match *definition {
-                BnfDefinition::Repeat(_) => {}
+                AbnfDefinition::Repeat(_) => {}
                 _ => panic!("error type"),
             }
         } else {

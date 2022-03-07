@@ -1,19 +1,18 @@
-use super::{abnf_type, new_lexer_state, BnfDefinition, BnfRule};
-
+use super::{abnf_type, new_lexer_state, AbnfDefinition, AbnfRule};
 use std::collections::HashMap;
 
-pub struct AbnfBuilder {
-    rules: HashMap<String, BnfRule>,
+pub struct AbnfRules {
+    rules: HashMap<String, AbnfRule>,
 }
 
-impl AbnfBuilder {
+impl AbnfRules {
     pub fn new() -> Self {
-        AbnfBuilder {
+        AbnfRules {
             rules: HashMap::new(),
         }
     }
 
-    pub fn result(&self) -> &HashMap<String, BnfRule> {
+    pub fn result(&self) -> &HashMap<String, AbnfRule> {
         &self.rules
     }
 
@@ -39,12 +38,12 @@ impl AbnfBuilder {
                 }
                 _ => return Err(()),
             }
-            let definition = BnfDefinition::new(src, &mut lexer_state)?;
+            let definition = AbnfDefinition::new(src, &mut lexer_state)?;
 
             if let Some(rule) = self.rules.get_mut(&rule_name) {
                 rule.append_select(definition);
             } else {
-                let rule = BnfRule::new(rule_name.as_str(), definition);
+                let rule = AbnfRule::new(rule_name.as_str(), definition);
                 self.rules.insert(rule_name, rule);
             }
         }
@@ -57,7 +56,7 @@ mod tests {
 
     #[test]
     fn test_build_line() {
-        let mut builder = AbnfBuilder::new();
+        let mut builder = AbnfRules::new();
 
         assert_eq!(Ok(()), builder.parse("rule = rule2 / rule3;"));
 
@@ -66,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_build_twice_line() {
-        let mut builder = AbnfBuilder::new();
+        let mut builder = AbnfRules::new();
 
         assert_eq!(Ok(()), builder.parse("rule = rule2 / rule3;"));
         assert_eq!(Ok(()), builder.parse("rule2 = rule3 / rule4;"));
@@ -76,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_build_multi_lines() {
-        let mut builder = AbnfBuilder::new();
+        let mut builder = AbnfRules::new();
 
         assert_eq!(
             Ok(()),
@@ -88,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_build_twice_multi_lines() {
-        let mut builder = AbnfBuilder::new();
+        let mut builder = AbnfRules::new();
 
         assert_eq!(
             Ok(()),
@@ -104,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_build_append() {
-        let mut builder = AbnfBuilder::new();
+        let mut builder = AbnfRules::new();
 
         assert_eq!(
             Ok(()),
