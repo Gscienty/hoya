@@ -2,15 +2,62 @@ use super::{NextStateChange, Position, StateChange, Token};
 use regex::Regex;
 use std::collections::HashMap;
 
-// 词法解析器
-pub struct LexerState<S> {
-    custom_state: S,
+pub struct LexerStateSnapshot {
     offset: usize,
     line: usize,
     line_offset: usize,
-
     state_stack: Vec<&'static str>,
     current_state: &'static str,
+}
+
+impl LexerStateSnapshot {
+    pub fn new(
+        offset: usize,
+        line: usize,
+        line_offset: usize,
+        state_stack: Vec<&'static str>,
+        current_state: &'static str,
+    ) -> Self {
+        LexerStateSnapshot {
+            offset,
+            line,
+            line_offset,
+            state_stack,
+            current_state,
+        }
+    }
+
+    pub fn get_offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn get_line(&self) -> usize {
+        self.line
+    }
+
+    pub fn get_line_offset(&self) -> usize {
+        self.line_offset
+    }
+
+    pub fn get_state_stack(&self) -> Vec<&'static str> {
+        self.state_stack.clone()
+    }
+
+    pub fn get_current_state(&self) -> &'static str {
+        self.current_state
+    }
+}
+
+// 词法解析器
+pub struct LexerState<S> {
+    custom_state: S,
+
+    offset: usize,
+    line: usize,
+    line_offset: usize,
+    state_stack: Vec<&'static str>,
+    current_state: &'static str,
+
     ignore_regex: Option<Regex>,
     lexer_tokens: HashMap<&'static str, Vec<(Regex, fn(&mut S, &str) -> (Token, StateChange))>>,
     eof: Option<fn() -> Token>,
@@ -45,6 +92,14 @@ impl<S> LexerState<S> {
         self.is_eof = false;
     }
 
+    pub fn get_custom_state(&self) -> &S {
+        &self.custom_state
+    }
+
+    pub fn get_mut_custom_state(&mut self) -> &mut S {
+        &mut self.custom_state
+    }
+
     pub fn reset_src(&mut self, initial_status: &'static str, custom_state: S) {
         self.state_stack = Vec::new();
         self.current_state = initial_status;
@@ -52,6 +107,26 @@ impl<S> LexerState<S> {
         self.offset = 0;
         self.line = 1;
         self.line_offset = 0;
+    }
+
+    // 对当前 LexerState 状态进行快照存储
+    pub fn dump(&self) -> LexerStateSnapshot {
+        LexerStateSnapshot::new(
+            self.offset,
+            self.line,
+            self.line_offset,
+            self.state_stack.clone(),
+            self.current_state,
+        )
+    }
+
+    // 还原 LexerState 状态
+    pub fn restore(&mut self, snapshot: LexerStateSnapshot) {
+        self.offset = snapshot.get_offset();
+        self.line = snapshot.get_line();
+        self.line_offset = snapshot.get_line_offset();
+        self.state_stack = snapshot.get_state_stack();
+        self.current_state = snapshot.get_current_state();
     }
 
     // 跳过忽略字符，返回offset > src.len()

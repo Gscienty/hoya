@@ -64,7 +64,23 @@ impl GrammarParser {
                 }
             }
 
-            AbnfDefinition::Select(_) => {}
+            AbnfDefinition::Select(definitions) => {
+                let mut selected = false;
+                for definition in definitions {
+                    if let Ok(mut child_node) = self.parse_abnf_definition(definition, token_parser)
+                    {
+                        child_node.set_rule(false, String::from(definition.get_name()));
+                        node.append_child(child_node);
+                        selected = true;
+
+                        break;
+                    }
+                }
+
+                if !selected {
+                    return Err(());
+                }
+            }
 
             AbnfDefinition::Terminal(value) => {
                 node.set_value(self.parse_abnf_definition_terminal(&value, token_parser)?);
@@ -83,10 +99,23 @@ impl GrammarParser {
                 );
             }
 
-            AbnfDefinition::Range(_) => {}
-            AbnfDefinition::Group(_) => {}
-            AbnfDefinition::Options(_) => {}
-            AbnfDefinition::Repeat(_) => {}
+            AbnfDefinition::Group(definition) => node.append_child(
+                self.parse_abnf_definition(definition, token_parser)
+                    .and_then(|mut node| {
+                        node.set_rule(false, String::from(definition.get_name()));
+
+                        Ok(node)
+                    })?,
+            ),
+
+            AbnfDefinition::Options(definition) => {
+                if let Ok(mut child_node) = self.parse_abnf_definition(definition, token_parser) {
+                    child_node.set_rule(false, String::from(definition.get_name()));
+                    node.append_child(child_node);
+                }
+            }
+
+            _ => return Err(()),
         }
 
         Ok(node)
