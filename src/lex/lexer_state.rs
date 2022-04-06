@@ -1,13 +1,49 @@
+/*
+ * 词法解析器
+ *
+ * 本文件主要实现两个结构：LexerState 和 LexerStateSnapshot。
+ *
+ * LexerState 用于记录词法解析过程中的状态，它将作为词法解
+ * 析过程中实现状态转换的重要模块。在LexerState中，将会记录
+ * 词法解析的文本指针、并且记录了词法解析的所有状态，每个状
+ * 态中的Token生成规则。
+ *
+ * LexerStateSnapshot 用于存储 LexerState 的快照。
+ *
+ */
+
 use super::{NextStateChange, Position, StateChange, Token};
 use regex::Regex;
 use std::collections::HashMap;
 
+pub struct LexerTokenSnapshot {
+    state_stack: Vec<&'static str>,
+    current_state: &'static str,
+}
+
+impl LexerTokenSnapshot {
+    pub fn new(state_stack: Vec<&'static str>, current_state: &'static str) -> Self {
+        LexerTokenSnapshot {
+            state_stack,
+            current_state,
+        }
+    }
+
+    pub fn get_state_stack(&self) -> Vec<&'static str> {
+        self.state_stack.clone()
+    }
+
+    pub fn get_current_state(&self) -> &'static str {
+        self.current_state
+    }
+}
+
+// 词法解析器快照
 pub struct LexerStateSnapshot {
     offset: usize,
     line: usize,
     line_offset: usize,
-    state_stack: Vec<&'static str>,
-    current_state: &'static str,
+    token_snapshot: LexerTokenSnapshot,
 }
 
 impl LexerStateSnapshot {
@@ -15,15 +51,13 @@ impl LexerStateSnapshot {
         offset: usize,
         line: usize,
         line_offset: usize,
-        state_stack: Vec<&'static str>,
-        current_state: &'static str,
+        token_snapshot: LexerTokenSnapshot,
     ) -> Self {
         LexerStateSnapshot {
             offset,
             line,
             line_offset,
-            state_stack,
-            current_state,
+            token_snapshot,
         }
     }
 
@@ -39,12 +73,85 @@ impl LexerStateSnapshot {
         self.line_offset
     }
 
-    pub fn get_state_stack(&self) -> Vec<&'static str> {
-        self.state_stack.clone()
+    pub fn get_token_snapshot(&self) -> &LexerTokenSnapshot {
+        &self.token_snapshot
+    }
+}
+
+type TokenFactoryFunc<S> = fn(&mut S, &str) -> (Token, StateChange);
+
+struct LexerTokenFactory<S> {
+    state_stack: Vec<&'static str>,
+    current_state: &'static str,
+    token_factory: HashMap<&'static str, Vec<(Regex, TokenFactoryFunc<S>)>>,
+}
+
+impl<S> LexerTokenFactory<S> {
+    pub fn new(initial_status: &'static str) -> Self {
+        LexerTokenFactory {
+            state_stack: Vec::new(),
+            current_state: initial_status,
+            token_factory: HashMap::new(),
+        }
     }
 
-    pub fn get_current_state(&self) -> &'static str {
-        self.current_state
+    pub fn reset(&mut self, initial_status: &'static str) {
+        self.state_stack.clear();
+        self.current_state = initial_status;
+        self.token_factory.clear();
+    }
+
+    fn set(&mut self, state: &'static str) -> Option<&mut Vec<(Regex, TokenFactoryFunc<S>)>> {
+        if !self.token_factory.contains_key(state) {
+            self.token_factory.insert(state, Vec::new());
+        }
+
+        self.token_factory.get_mut(state)
+    }
+
+    pub fn add(&mut self, state: &'static str, re: &str, token: TokenFactoryFunc<S>) {
+        self.set(state)
+            .and_then(|tokens| Some(Regex::new(re).and_then(|re| Ok(tokens.push((re, token))))));
+    }
+
+    fn push(&mut self, state: &'static str) {
+        self.state_stack.push(self.current_state);
+        self.current_state = state;
+    }
+
+    fn pop(&mut self, times: usize) {
+        (0..times).for_each(|_| {
+            self.state_stack
+                .pop()
+                .and_then(|state| Some(self.current_state = state));
+        });
+    }
+
+    pub fn change_state(&mut self, next_state: &NextStateChange) {
+        match next_state {
+            &NextStateChange::Push(state) => self.push(state),
+            &NextStateChange::Pop(times) => self.pop(times),
+        }
+    }
+
+    pub fn get<'t>(&mut self, src: &'t str) -> Option<(&'t str, &TokenFactoryFunc<S>)> {
+        self.token_factory
+            .get(self.current_state)
+            .and_then(|tokens| {
+                tokens.iter().find_map(|(re, factory)| {
+                    re.find(src)
+                        .and_then(|matched| Some((matched.as_str(), factory)))
+                })
+            })
+    }
+
+    pub fn dump(&self) -> LexerTokenSnapshot {
+        LexerTokenSnapshot::new(self.state_stack.clone(), self.current_state)
+    }
+
+    pub fn restore(&mut self, snapshot: &LexerTokenSnapshot) {
+        self.state_stack = snapshot.get_state_stack();
+        self.current_state = snapshot.get_current_state();
     }
 }
 
@@ -55,13 +162,12 @@ pub struct LexerState<S> {
     offset: usize,
     line: usize,
     line_offset: usize,
-    state_stack: Vec<&'static str>,
-    current_state: &'static str,
 
     ignore_regex: Option<Regex>,
-    lexer_tokens: HashMap<&'static str, Vec<(Regex, fn(&mut S, &str) -> (Token, StateChange))>>,
     eof: Option<fn() -> Token>,
     is_eof: bool,
+
+    token_factory: LexerTokenFactory<S>,
 }
 
 impl<S> LexerState<S> {
@@ -69,27 +175,31 @@ impl<S> LexerState<S> {
     pub fn new(initial_status: &'static str, custom_state: S) -> Self {
         LexerState {
             custom_state,
+
             offset: 0,
             line: 1,
             line_offset: 0,
 
-            state_stack: Vec::new(),
-            current_state: initial_status,
             ignore_regex: None,
-            lexer_tokens: HashMap::new(),
             eof: None,
             is_eof: false,
+
+            token_factory: LexerTokenFactory::new(initial_status),
         }
     }
 
     // 重置词法解析器
     pub fn reset(&mut self, initial_status: &'static str, custom_state: S) {
-        self.reset_src(initial_status, custom_state);
+        self.custom_state = custom_state;
 
-        self.ignore_regex = None;
-        self.lexer_tokens.clear();
+        self.offset = 0;
+        self.line = 1;
+        self.line_offset = 0;
+
         self.eof = None;
         self.is_eof = false;
+
+        self.token_factory.reset(initial_status);
     }
 
     pub fn get_custom_state(&self) -> &S {
@@ -100,23 +210,13 @@ impl<S> LexerState<S> {
         &mut self.custom_state
     }
 
-    pub fn reset_src(&mut self, initial_status: &'static str, custom_state: S) {
-        self.state_stack = Vec::new();
-        self.current_state = initial_status;
-        self.custom_state = custom_state;
-        self.offset = 0;
-        self.line = 1;
-        self.line_offset = 0;
-    }
-
     // 对当前 LexerState 状态进行快照存储
     pub fn dump(&self) -> LexerStateSnapshot {
         LexerStateSnapshot::new(
             self.offset,
             self.line,
             self.line_offset,
-            self.state_stack.clone(),
-            self.current_state,
+            self.token_factory.dump(),
         )
     }
 
@@ -125,8 +225,7 @@ impl<S> LexerState<S> {
         self.offset = snapshot.get_offset();
         self.line = snapshot.get_line();
         self.line_offset = snapshot.get_line_offset();
-        self.state_stack = snapshot.get_state_stack();
-        self.current_state = snapshot.get_current_state();
+        self.token_factory.restore(snapshot.get_token_snapshot());
     }
 
     // 跳过忽略字符，返回offset > src.len()
@@ -171,21 +270,9 @@ impl<S> LexerState<S> {
         &mut self,
         state: &'static str,
         re: &str,
-        lexer_token: fn(&mut S, &str) -> (Token, StateChange),
+        lexer_token: TokenFactoryFunc<S>,
     ) -> &mut Self {
-        if !self.lexer_tokens.contains_key(state) {
-            self.lexer_tokens.insert(state, Vec::new());
-        }
-
-        Regex::new(re)
-            .or_else(|_| Err(()))
-            .and_then(|re| {
-                self.lexer_tokens
-                    .get_mut(state)
-                    .and_then(|lexer_tokens| Some(lexer_tokens.push((re, lexer_token))))
-                    .ok_or(())
-            })
-            .ok();
+        self.token_factory.add(state, re, lexer_token);
 
         self
     }
@@ -197,22 +284,11 @@ impl<S> LexerState<S> {
             self.line += change.get_increment_lines();
             self.line_offset = self.offset;
         }
+
         change
             .get_next_state()
             .iter()
-            .for_each(|state| match state {
-                &NextStateChange::Push(state) => {
-                    self.state_stack.push(self.current_state);
-                    self.current_state = state;
-                }
-                &NextStateChange::Pop(times) => {
-                    for _ in 0..times {
-                        self.state_stack
-                            .pop()
-                            .and_then(|state| Some(self.current_state = state));
-                    }
-                }
-            });
+            .for_each(|state| self.token_factory.change_state(state));
     }
 
     fn get_current_position(&self) -> Position {
@@ -221,20 +297,11 @@ impl<S> LexerState<S> {
 
     fn next_token(&mut self, src: &str) -> Option<(Token, StateChange)> {
         src.get(self.offset..).and_then(|src| {
-            if let Some((token, factory)) =
-                self.lexer_tokens
-                    .get(self.current_state)
-                    .and_then(|tokens| {
-                        tokens.iter().find_map(|(re, factory)| {
-                            re.find(src)
-                                .and_then(|matched| Some((matched.as_str(), factory)))
-                        })
-                    })
-            {
-                Some(factory(&mut self.custom_state, token))
-            } else {
-                None
-            }
+            let custom_state = &mut self.custom_state;
+
+            self.token_factory
+                .get(src)
+                .and_then(|(token, factory)| Some(factory(custom_state, token)))
         })
     }
 
@@ -255,7 +322,6 @@ impl<S> LexerState<S> {
             self.next_token(src)
                 .and_then(|(mut token, state_change)| {
                     self.state_change(&state_change);
-
                     token.set_location(begin_position, self.get_current_position());
 
                     Some(token)
