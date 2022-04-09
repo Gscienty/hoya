@@ -136,271 +136,171 @@ pub mod abnf_state {
 const ABNF_IGNORE_REGEX: &str = r"^( |\t)";
 
 macro_rules! set_abnf_rules {
-    (LET $lexer_state: ident WHEN $token_state: ident SET $(
+    (LET $lexer_state: ident $(WHEN $token_state: ident SET $(
         [$token_regex: ident] => $token_type: ident $(- $pop: literal)? $(+ $push: ident)*
-    )*) => {{
-        $lexer_state.state(abnf_state::$token_state)
+    )*)*) => {{
+        $($lexer_state.state(abnf_state::$token_state)
             $(.token($token_regex, |_: &mut BnfState, token: &str| {
                 TokenFactory::new(abnf_type::$token_type)
                     $(.pop_state($pop))?
                     $(.push_state(abnf_state::$push))*
                     .build(token)
-            }))*;
+            }))*;)*
+
+        $lexer_state
     }};
 }
 
 pub fn new_lexer_state() -> LexerState<BnfState> {
     let mut state = LexerState::new(abnf_state::ABNF_STATE_INIT, BnfState::new());
-
     state
         .set_eof(|| Token::new(abnf_type::ABNF_TOKEN_EOF, ""))
         .set_ignore(ABNF_IGNORE_REGEX);
 
     set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_INIT
+        LET state
+
+        WHEN ABNF_STATE_INIT
         SET
-
-        [TOKEN_NAME_REGEX] => TOKEN_NAME_TYPE
-        + ABNF_STATE_DEFINER
-    );
-
-    set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_DEFINER
-        SET
-
-        [TOKEN_DEFINER_REGEX] => TOKEN_DEFINER_TYPE - 1
-        + ABNF_STATE_ELEMENTS
-        + ABNF_STATE_REQUIRE_ELEMENTS
-    );
-
-    set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_REQUIRE_ELEMENTS
-        SET
-
-        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE             - 1
-
-        [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE            - 1
-
-        [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE      - 1
-
-        [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE         - 1
-        + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-
-        [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE - 1
-        + ABNF_STATE_PARENTHESIS_ELEMENTS
-        + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-
-        [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE     - 1
-        + ABNF_STATE_OPTIONS_ELEMENTS
-        + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-    );
-
-    set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_ELEMENTS
-        SET
-
         [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE
+            + ABNF_STATE_DEFINER
 
+        WHEN ABNF_STATE_DEFINER
+        SET
+        [TOKEN_DEFINER_REGEX]              => TOKEN_DEFINER_TYPE           - 1
+            + ABNF_STATE_ELEMENTS
+            + ABNF_STATE_REQUIRE_ELEMENTS
+
+        WHEN ABNF_STATE_REQUIRE_ELEMENTS
+        SET
+        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE              - 1
+        [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE             - 1
+        [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE       - 1
+        [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE          - 1
+            + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+        [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE  - 1
+            + ABNF_STATE_PARENTHESIS_ELEMENTS
+            + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
+        [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE      - 1
+            + ABNF_STATE_OPTIONS_ELEMENTS
+            + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
+
+        WHEN ABNF_STATE_ELEMENTS
+        SET
+        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE
         [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE
-
         [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE
-
         [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE
-
-        [TOKEN_END_REGEX]                  => TOKEN_END_TYPE - 1
-
+        [TOKEN_END_REGEX]                  => TOKEN_END_TYPE               - 1
         [TOKEN_SELECT_REGEX]               => TOKEN_SELECT_TYPE
-        + ABNF_STATE_REQUIRE_ELEMENTS
-
+            + ABNF_STATE_REQUIRE_ELEMENTS
         [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE
-        + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-
+            + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
         [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE
-        + ABNF_STATE_PARENTHESIS_ELEMENTS
-        + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-
+            + ABNF_STATE_PARENTHESIS_ELEMENTS
+            + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
         [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE
-        + ABNF_STATE_OPTIONS_ELEMENTS
-        + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-    );
+            + ABNF_STATE_OPTIONS_ELEMENTS
+            + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
 
-    set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
+        WHEN ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
         SET
+        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE              - 1
+        [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE             - 1
+        [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE       - 1
+        [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE          - 1
+            + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+        [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE  - 1
+            + ABNF_STATE_PARENTHESIS_ELEMENTS
+            + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
+        [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE      - 1
+            + ABNF_STATE_OPTIONS_ELEMENTS
+            + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
 
-        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE             - 1
-
-        [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE            - 1
-
-        [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE      - 1
-
-        [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE         - 1
-        + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-
-        [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE - 1
-        + ABNF_STATE_PARENTHESIS_ELEMENTS
-        + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-
-        [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE     - 1
-        + ABNF_STATE_OPTIONS_ELEMENTS
-        + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-    );
-
-    set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_PARENTHESIS_ELEMENTS
+        WHEN ABNF_STATE_PARENTHESIS_ELEMENTS
         SET
-
         [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE
-
         [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE
-
         [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE
-
         [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE
-
         [TOKEN_RIGHT_PARENTHESIS_REGEX]    => TOKEN_RIGHT_PARENTHESIS_TYPE - 1
-
         [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE
-        + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-
+            + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
         [TOKEN_SELECT_REGEX]               => TOKEN_SELECT_TYPE
-        + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-
+            + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
         [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE
-        + ABNF_STATE_PARENTHESIS_ELEMENTS
-        + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-
+            + ABNF_STATE_PARENTHESIS_ELEMENTS
+            + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
         [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE
-        + ABNF_STATE_OPTIONS_ELEMENTS
-        + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-    );
+            + ABNF_STATE_OPTIONS_ELEMENTS
+            + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
 
-    set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+        WHEN ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
         SET
+        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE              - 1
+        [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE             - 1
+        [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE       - 1
+        [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE  - 1
+            + ABNF_STATE_PARENTHESIS_ELEMENTS
+            + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
 
-        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE             - 1
-
-        [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE            - 1
-
-        [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE      - 1
-
-        [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE - 1
-        + ABNF_STATE_PARENTHESIS_ELEMENTS
-        + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-    );
-
-    set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
+        WHEN ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
         SET
+        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE              - 1
+        [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE          - 1
+        [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE             - 1
+        [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE       - 1
+        [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE          - 1
+            + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
+        [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE  - 1
+            + ABNF_STATE_PARENTHESIS_ELEMENTS
+            + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
+        [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE      - 1
+            + ABNF_STATE_OPTIONS_ELEMENTS
+            + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
 
-        [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE             - 1
-
-        [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE         - 1
-
-        [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE            - 1
-
-        [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE      - 1
-
-        [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE         - 1
-        + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-
-        [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE - 1
-        + ABNF_STATE_PARENTHESIS_ELEMENTS
-        + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-
-        [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE     - 1
-        + ABNF_STATE_OPTIONS_ELEMENTS
-        + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-    );
-
-    set_abnf_rules!(
-        LET state WHEN
-            ABNF_STATE_OPTIONS_ELEMENTS
+        WHEN ABNF_STATE_OPTIONS_ELEMENTS
         SET
-
         [TOKEN_NAME_REGEX]                 => TOKEN_NAME_TYPE
-
         [TOKEN_TERMINAL_BINARY_REGEX]      => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_DECIMAL_REGEX]     => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_HEXADECIMAL_REGEX] => TOKEN_TERMINAL_TYPE
-
         [TOKEN_TERMINAL_STRING_REGEX]      => TOKEN_TERMINAL_TYPE
-
         [TOKEN_RANGE_REGEX]                => TOKEN_RANGE_TYPE
-
         [TOKEN_REQUIREMENT_REGEX]          => TOKEN_REQUIREMENT_TYPE
-
-        [TOKEN_RIGHT_OPTIONS_REGEX]        => TOKEN_RIGHT_OPTIONS_TYPE - 1
-
+        [TOKEN_RIGHT_OPTIONS_REGEX]        => TOKEN_RIGHT_OPTIONS_TYPE     - 1
         [TOKEN_SELECT_REGEX]               => TOKEN_SELECT_TYPE
-        + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-
+            + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
         [TOKEN_VARIABLE_REGEX]             => TOKEN_VARIABLE_TYPE
-        + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
-
+            + ABNF_STATE_VARIABLE_REQUIRE_ELEMENT
         [TOKEN_LEFT_PARENTHESIS_REGEX]     => TOKEN_LEFT_PARENTHESIS_TYPE
-        + ABNF_STATE_PARENTHESIS_ELEMENTS
-        + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
-
+            + ABNF_STATE_PARENTHESIS_ELEMENTS
+            + ABNF_STATE_PARENTHESIS_REQUIRE_ELEMENTS
         [TOKEN_LEFT_OPTIONS_REGEX]         => TOKEN_LEFT_OPTIONS_TYPE
-        + ABNF_STATE_OPTIONS_ELEMENTS
-        + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
-    );
-
-    state
+            + ABNF_STATE_OPTIONS_ELEMENTS
+            + ABNF_STATE_OPTIONS_REQUIRE_ELEMENTS
+    )
 }
 
 #[cfg(test)]
