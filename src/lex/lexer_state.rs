@@ -80,7 +80,7 @@ impl LexerStateSnapshot {
 
 type TokenFactoryFunc<S> = fn(&mut S, &str) -> (Token, StateChange);
 
-struct LexerTokenFactory<S> {
+pub struct LexerTokenFactory<S> {
     state_stack: Vec<&'static str>,
     current_state: &'static str,
     token_factory: HashMap<&'static str, Vec<(Regex, TokenFactoryFunc<S>)>>,
@@ -109,9 +109,9 @@ impl<S> LexerTokenFactory<S> {
         self.token_factory.get_mut(state)
     }
 
-    pub fn add(&mut self, state: &'static str, re: &str, token: TokenFactoryFunc<S>) {
+    pub fn add(&mut self, state: &'static str, re: Regex, token: TokenFactoryFunc<S>) {
         self.set(state)
-            .and_then(|tokens| Some(Regex::new(re).and_then(|re| Ok(tokens.push((re, token))))));
+            .and_then(|tokens| Some(tokens.push((re, token))));
     }
 
     fn push(&mut self, state: &'static str) {
@@ -152,6 +152,34 @@ impl<S> LexerTokenFactory<S> {
     pub fn restore(&mut self, snapshot: &LexerTokenSnapshot) {
         self.state_stack = snapshot.get_state_stack();
         self.current_state = snapshot.get_current_state();
+    }
+}
+
+pub struct LexerStateSetter<'a, S> {
+    state: &'static str,
+    token_factory: &'a mut LexerTokenFactory<S>,
+}
+
+impl<'a, S> LexerStateSetter<'a, S> {
+    pub fn new(state: &'static str, token_factory: &'a mut LexerTokenFactory<S>) -> Self {
+        LexerStateSetter {
+            state,
+            token_factory,
+        }
+    }
+
+    pub fn token(&mut self, re: &str, token: TokenFactoryFunc<S>) -> &mut Self {
+        if let Ok(token_regex) = Regex::new(re) {
+            self.token_factory.add(self.state, token_regex, token);
+        }
+
+        self
+    }
+
+    pub fn state(&mut self, state: &'static str) -> &mut Self {
+        self.state = state;
+
+        self
     }
 }
 
@@ -263,18 +291,8 @@ impl<S> LexerState<S> {
         self
     }
 
-    // 添加Token
-    // re: Token正则表达式
-    // token_factory: 构造Token的方法
-    pub fn add_token(
-        &mut self,
-        state: &'static str,
-        re: &str,
-        lexer_token: TokenFactoryFunc<S>,
-    ) -> &mut Self {
-        self.token_factory.add(state, re, lexer_token);
-
-        self
+    pub fn state(&mut self, state: &'static str) -> LexerStateSetter<S> {
+        LexerStateSetter::new(state, &mut self.token_factory)
     }
 
     fn state_change(&mut self, change: &StateChange) {
@@ -351,13 +369,14 @@ mod tests {
         state
             .set_eof(|| Token::new("eof", ""))
             .set_ignore(r"^( |\t)")
-            .add_token(INITIAL_STATE, NUMBER_TOKEN, |_, token| {
+            .state(INITIAL_STATE)
+            .token(NUMBER_TOKEN, |_, token| {
                 TokenFactory::new(NUMBER_TYPE).build(token)
             })
-            .add_token(INITIAL_STATE, NAME_TOKEN, |_, token| {
+            .token(NAME_TOKEN, |_, token| {
                 TokenFactory::new(NAME_TYPE).build(token)
             })
-            .add_token(INITIAL_STATE, LITERAL_TOKEN, |_, token| {
+            .token(LITERAL_TOKEN, |_, token| {
                 TokenFactory::new(LITERAL_TYPE).build(token)
             });
 
@@ -398,40 +417,41 @@ mod tests {
             .set_ignore(r"^( |\t)");
 
         state
-            .add_token("init", r"^[a-z]+", |_, token| {
+            .state("init")
+            .token(r"^[a-z]+", |_, token| {
                 TokenFactory::new("name")
                     .push_state("require_literal")
                     .build(token)
             })
-            .add_token("init", r"^\+{2}", |_, token| {
+            .token(r"^\+{2}", |_, token| {
                 TokenFactory::new("literal")
                     .push_state("require_increment_name")
                     .build(token)
+            })
+            .state("require_literal")
+            .token(r"^\+{1,2}", |_, token| {
+                if token.len().eq(&1) {
+                    TokenFactory::new("literal").pop_state(2).build("+")
+                } else {
+                    TokenFactory::new("literal")
+                        .push_state("name_increment_after")
+                        .build("++")
+                }
+            })
+            .state("require_increment_name")
+            .token(r"^[a-z]+", |_, token| {
+                TokenFactory::new("name")
+                    .push_state("increment_name_after")
+                    .build(token)
+            })
+            .state("increment_name_after")
+            .token(r"^\+", |_, token| {
+                TokenFactory::new("literal").pop_state(2).build(token)
+            })
+            .state("name_increment_after")
+            .token(r"^\+", |_, token| {
+                TokenFactory::new("literal").pop_state(3).build(token)
             });
-
-        state.add_token("require_literal", r"^\+{1,2}", |_, token| {
-            if token.len().eq(&1) {
-                TokenFactory::new("literal").pop_state(2).build("+")
-            } else {
-                TokenFactory::new("literal")
-                    .push_state("name_increment_after")
-                    .build("++")
-            }
-        });
-
-        state.add_token("require_increment_name", r"^[a-z]+", |_, token| {
-            TokenFactory::new("name")
-                .push_state("increment_name_after")
-                .build(token)
-        });
-
-        state.add_token("increment_name_after", r"^\+", |_, token| {
-            TokenFactory::new("literal").pop_state(2).build(token)
-        });
-
-        state.add_token("name_increment_after", r"^\+", |_, token| {
-            TokenFactory::new("literal").pop_state(3).build(token)
-        });
 
         let src = "++k+i+++++j";
         for (token_type, token_value) in vec![
